@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { RuntimeConfiguration } from "@coilcoil/runtime-protocol";
 import type { MacPermissions, ProjectSelection } from "../../../../shared/desktop-api";
 import { rendererPlatform } from "../../platform";
-import { ModelSettings } from "../settings/ModelSettings";
+import { SparkAiEditor } from "../settings/SparkAiEditor";
 import { WindowDragBar } from "../../ui/WindowDragBar";
 import { OnboardingAgentSetup } from "./OnboardingAgentSetup";
 import { OnboardingIntegrationsSetup } from "./OnboardingIntegrationsSetup";
@@ -31,7 +31,7 @@ const HEADINGS: Record<OnboardingStepId, { title: React.ReactNode; lead: string 
   },
   model: {
     title: "配一个模型",
-    lead: "选一个服务商填上密钥就能开始。现在不配也行，之后在「设置 → 模型与服务商」里随时能补。",
+    lead: "填上 API Key 就能开始。现在不配也行，之后在「设置 → 模型与服务商」里随时能补。",
   },
   agents: {
     title: "把 Agent 配完整",
@@ -142,7 +142,7 @@ export function OnboardingScreen({ configuration, onConfigurationSaved, runtimeI
 
               {progress.step === "model" ? (
                 <div className="onboarding-embed settings-surface">
-                  <ModelSettings configuration={configuration} onSaved={onConfigurationSaved} runtimeId={runtimeId} />
+                  <SparkAiEditor embedded onSaved={onConfigurationSaved} runtimeId={runtimeId} />
                 </div>
               ) : null}
 

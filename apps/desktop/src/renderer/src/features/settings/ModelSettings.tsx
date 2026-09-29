@@ -27,6 +27,8 @@ import {
 import { Select, type SelectOption } from "../../ui/Select";
 import { UpstreamModelPicker, type UpstreamModelOption } from "./UpstreamModelPicker";
 import { ProviderOAuthDialog } from "./ProviderOAuthDialog";
+import { SparkAiEditor } from "./SparkAiEditor";
+import { SPARK_PROVIDER_ID, SPARK_PROVIDER_NAME } from "./sparkai";
 
 export type EditableModel = ModelProviderModelConfiguration & { uid: string };
 type ProviderDraft = Omit<ModelProviderConfigurationInput["provider"], "models"> & { models: EditableModel[] };
@@ -484,6 +486,7 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
   runtimeId?: string;
 }): React.JSX.Element {
   const [snapshot, setSnapshot] = useState<ModelProviderConfigurationSnapshot>();
+  const [sparkOpen, setSparkOpen] = useState(true);
   const [selectedId, setSelectedId] = useState<string>();
   const [selectedSource, setSelectedSource] = useState<ModelProviderConfiguration["source"]>("built-in");
   const [draft, setDraft] = useState<ProviderDraft>();
@@ -611,7 +614,8 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
     const normalized = query.trim().toLowerCase();
     return (snapshot?.providers ?? []).filter((provider) => !normalized || `${provider.id} ${provider.name}`.toLowerCase().includes(normalized));
   }, [query, snapshot]);
-  const customProviders = providerOptions.filter((provider) => provider.source === "custom");
+  const sparkProvider = snapshot?.providers.find((provider) => provider.id === SPARK_PROVIDER_ID);
+  const customProviders = providerOptions.filter((provider) => provider.source === "custom" && provider.id !== SPARK_PROVIDER_ID);
   const overrideProviders = providerOptions.filter((provider) => provider.source === "override");
   const builtinProviders = providerOptions.filter((provider) => provider.source === "built-in");
   const protocolOptions = apiOptions(snapshot);
@@ -633,8 +637,9 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
     return rows.filter(({ model }) => `${model.id} ${model.name ?? ""}`.toLowerCase().includes(query));
   }, [draft?.models, modelQuery]);
 
-  const selectProvider = (provider: ModelProviderConfiguration): void => applyProvider(provider);
+  const selectProvider = (provider: ModelProviderConfiguration): void => { setSparkOpen(false); applyProvider(provider); };
   const addProvider = (): void => {
+    setSparkOpen(false);
     const ids = new Set(snapshot?.providers.map((provider) => provider.id) ?? []);
     let index = 1;
     while (ids.has(index === 1 ? "custom-provider" : `custom-provider-${index}`)) index += 1;
@@ -895,6 +900,12 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
         <div className="provider-catalog-toolbar"><strong>服务商</strong><button type="button" aria-label="添加自定义服务商" onClick={addProvider}><Plus size={14} />添加</button></div>
         <div className="provider-catalog-search"><Search size={14} /><input value={query} placeholder="搜索服务商" onChange={(event) => setQuery(event.target.value)} /></div>
         {loading ? <p className="settings-loading"><LoaderCircle className="spin" size={15} />加载服务商目录…</p> : null}
+        <section className="provider-catalog-group">
+          <button className={sparkOpen ? "active" : ""} type="button" onClick={() => setSparkOpen(true)}>
+            <span><strong>{SPARK_PROVIDER_NAME}</strong><small>{SPARK_PROVIDER_ID}</small></span>
+            <em className={sparkProvider?.apiKeyConfigured ? "configured" : ""}>{sparkProvider?.apiKeyConfigured ? "已配置" : "内置"}</em>
+          </button>
+        </section>
         {([
           ["自定义服务商", customProviders],
           ["内置覆盖", overrideProviders],
@@ -911,8 +922,8 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
         </section> : null)}
       </aside>
       <section className="provider-editor">
-        {!draft && !loading ? <div className="provider-editor-empty"><CircleDot size={22} /><strong>选择或添加一个服务商</strong><p>所有配置都会写入 CoilCoil 私有运行时的 <code>models.json</code>，不会读取或修改用户的本地 Agent 目录。</p></div> : null}
-        {draft?.id === "openai-responses-ws" ? <OpenAIResponsesWsEditor runtimeId={runtimeId} onSaved={onSaved} onReload={(next) => load("openai-responses-ws", next)} /> : draft ? <form onSubmit={(event) => { event.preventDefault(); void save(); }}>
+        {!draft && !loading && !sparkOpen ? <div className="provider-editor-empty"><CircleDot size={22} /><strong>选择或添加一个服务商</strong><p>所有配置都会写入 CoilCoil 私有运行时的 <code>models.json</code>，不会读取或修改用户的本地 Agent 目录。</p></div> : null}
+        {sparkOpen ? <SparkAiEditor runtimeId={runtimeId} onSaved={onSaved} onReload={() => load(undefined)} /> : draft?.id === "openai-responses-ws" ? <OpenAIResponsesWsEditor runtimeId={runtimeId} onSaved={onSaved} onReload={(next) => load("openai-responses-ws", next)} /> : draft ? <form onSubmit={(event) => { event.preventDefault(); void save(); }}>
           <header className="provider-editor-heading">
             <div>
               <div className="provider-heading-tags"><span className="provider-source-tag">{selectedId ? sourceLabel(selectedSource) : "新的自定义服务商"}</span>{hasUnsavedChanges ? <span className="provider-unsaved-tag">未保存</span> : null}</div>
