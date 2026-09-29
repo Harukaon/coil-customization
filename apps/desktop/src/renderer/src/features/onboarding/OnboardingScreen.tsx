@@ -31,7 +31,7 @@ const HEADINGS: Record<OnboardingStepId, { title: React.ReactNode; lead: string 
   },
   model: {
     title: "配一个模型",
-    lead: "填上 API Key 就能开始。现在不配也行，之后在「设置 → 模型与服务商」里随时能补。",
+    lead: "填上 API Key 就能开始，也可以先跳过，之后在设置里补。",
   },
   agents: {
     title: "把 Agent 配完整",
@@ -128,7 +128,7 @@ export function OnboardingScreen({ configuration, onConfigurationSaved, runtimeI
               <p>{HEADINGS[progress.step].lead}</p>
             </div>
 
-            <div className={`onboarding-body ${["model", "agents", "memory", "integrations"].includes(progress.step) ? "stretch" : ""}`}>
+            <div className={`onboarding-body ${["agents", "memory", "integrations"].includes(progress.step) ? "stretch" : ""}`}>
               {progress.step === "intro" ? (
                 <div className="onboarding-lines">
                   {PRINCIPLES.map((line, position) => (
@@ -141,9 +141,7 @@ export function OnboardingScreen({ configuration, onConfigurationSaved, runtimeI
               ) : null}
 
               {progress.step === "model" ? (
-                <div className="onboarding-embed settings-surface">
-                  <SparkAiEditor embedded onSaved={onConfigurationSaved} runtimeId={runtimeId} />
-                </div>
+                <SparkAiEditor embedded onSaved={onConfigurationSaved} runtimeId={runtimeId} />
               ) : null}
 
               {progress.step === "agents" ? (

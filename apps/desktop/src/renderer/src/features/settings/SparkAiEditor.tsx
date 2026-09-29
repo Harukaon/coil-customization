@@ -1,4 +1,4 @@
-import { Check, KeyRound, LoaderCircle } from "lucide-react";
+import { Check, Eye, EyeOff, KeyRound, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type {
   ModelProviderConfiguration,
@@ -25,6 +25,7 @@ export function SparkAiEditor({ runtimeId, onSaved, onReload, embedded }: {
   const [existing, setExisting] = useState<ModelProviderConfiguration>();
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
   const load = async (): Promise<void> => {
     try {
@@ -82,10 +83,34 @@ export function SparkAiEditor({ runtimeId, onSaved, onReload, embedded }: {
     }
   };
 
+  if (embedded) {
+    return <form className="spark-onboard" onSubmit={(event) => { event.preventDefault(); void save(); }}>
+      <label htmlFor="spark-api-key">API Key</label>
+      <div className="spark-onboard-field">
+        <KeyRound size={16} />
+        <input
+          id="spark-api-key"
+          type={revealed ? "text" : "password"}
+          value={apiKey}
+          autoComplete="off"
+          spellCheck={false}
+          autoFocus
+          placeholder={configured ? "已配置，留空即保留" : "粘贴你的 API Key"}
+          onChange={(event) => setApiKey(event.target.value)}
+        />
+        <button type="button" aria-label={revealed ? "隐藏" : "显示"} onClick={() => setRevealed((value) => !value)}>{revealed ? <EyeOff size={15} /> : <Eye size={15} />}</button>
+      </div>
+      <button className="spark-onboard-save" type="submit" disabled={saving || (!apiKey.trim() && !configured)}>
+        {saving ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />}{saving ? "保存中…" : configured && !apiKey.trim() ? "已配置" : "保存"}
+      </button>
+      <p>服务地址和模型已经内置，只需要这一个密钥。</p>
+    </form>;
+  }
+
   return <form className="openai-responses-ws-editor" onSubmit={(event) => { event.preventDefault(); void save(); }}>
     <header className="provider-editor-heading">
       <div>
-        {embedded ? null : <span className="provider-source-tag">内置</span>}
+        <span className="provider-source-tag">内置</span>
         <strong>{SPARK_PROVIDER_NAME}</strong>
         <small>填写 API Key 即可使用，其余配置已内置。</small>
       </div>

@@ -149,6 +149,23 @@
 }
 .onboarding-embed > * { min-height: 0; }
 
+/* 模型这一步：只有一个密钥，做成一个居中的窄表单，不套容器。行宽和其他步骤的正文
+   一样收窄，输入框做得比设置页里的高一些，让它成为这一屏唯一的视觉重点。 */
+.spark-onboard { display: grid; width: 100%; max-width: 400px; margin: 18px auto 0; gap: 10px; animation: onboarding-step-in 460ms cubic-bezier(.16, 1, .3, 1) both; animation-delay: 80ms; }
+.spark-onboard label { color: hsl(var(--th) var(--ts) var(--l-302)); font-size: 12px; font-weight: 600; }
+.spark-onboard-field { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 8px 0 16px; border: 1px solid hsl(var(--th) var(--ts) var(--l-137) / 14%); border-radius: var(--radius-pill); color: hsl(var(--th) var(--ts) var(--l-590)); background: hsl(var(--th) var(--ts) var(--l-1000) / 80%); transition: border-color 160ms ease, box-shadow 160ms ease; }
+.spark-onboard-field:focus-within { border-color: hsl(var(--th) var(--ts) var(--l-198) / 55%); box-shadow: 0 0 0 4px hsl(var(--th) var(--ts) var(--l-137) / 7%); }
+.spark-onboard-field > svg { flex: 0 0 auto; }
+.spark-onboard-field input { flex: 1 1 auto; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; color: hsl(var(--th) var(--ts) var(--l-157)); background: transparent; font-size: 13px; }
+.spark-onboard-field input:focus-visible { outline: 0; }
+.spark-onboard-field input::placeholder { color: hsl(var(--th) var(--ts) var(--l-743)); }
+.spark-onboard-field button { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: hsl(var(--th) var(--ts) var(--l-590)); background: transparent; cursor: pointer; transition: background 140ms ease, color 140ms ease; }
+.spark-onboard-field button:hover { color: hsl(var(--th) var(--ts) var(--l-157)); background: hsl(var(--th) var(--ts) var(--l-137) / 6%); }
+.spark-onboard-save { display: inline-flex; height: 42px; align-items: center; justify-content: center; gap: 7px; margin-top: 6px; border-radius: var(--radius-pill); color: hsl(var(--th) var(--ts) var(--l-1000)); background: hsl(var(--th) var(--ts) var(--l-198)); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background 160ms ease, opacity 160ms ease; }
+.spark-onboard-save:hover:not(:disabled) { background: hsl(var(--th) var(--ts) var(--l-137)); }
+.spark-onboard-save:disabled { color: hsl(var(--th) var(--ts) var(--l-743)); background: hsl(var(--th) var(--ts) var(--l-137) / 7%); opacity: 1; cursor: default; }
+.spark-onboard > p { margin: 4px 0 0; color: hsl(var(--th) var(--ts) var(--l-590)); font-size: 11px; line-height: 1.7; text-align: center; }
+
 /* 模型之后的配置步骤。它们复用设置页的控件，但在引导中保持一个可滚动的窄面板，
    不让 Skill 列表或模型选择把底部操作条顶出窗口。 */
 .onboarding-setup-embed { overflow: auto; padding: 18px 20px; }
