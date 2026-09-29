@@ -54,7 +54,8 @@ test("权限页只是介绍：四项彼此独立，每项都要说清用途", ()
 
 test("只有真的有事情要做的那两步才摆「跳过」", () => {
   // 介绍页和权限页看一眼就够，一个「继续」就行；再摆一个「跳过」反而让人以为漏了什么。
-  assert.equal(canSkip("model"), true);
+  // Private-deployment build: the model step cannot be skipped.
+  assert.equal(canSkip("model"), false);
   assert.equal(canSkip("agents"), true);
   assert.equal(canSkip("memory"), true);
   assert.equal(canSkip("integrations"), true);

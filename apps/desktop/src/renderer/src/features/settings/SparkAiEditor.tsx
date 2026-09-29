@@ -14,13 +14,15 @@ import { SPARK_API, SPARK_BASE_URL, SPARK_DEFAULT_MODELS, SPARK_PROVIDER_ID, SPA
  * list are fixed by `sparkai.ts` and saved as an ordinary custom provider, so the
  * rest of the settings code treats it like any other.
  */
-export function SparkAiEditor({ runtimeId, onSaved, onReload, embedded }: {
+export function SparkAiEditor({ runtimeId, onSaved, onReload, embedded, onConfiguredChange }: {
   runtimeId?: string;
   onSaved: (configuration: RuntimeConfiguration) => void;
   /** Lets the full provider list refresh after a save. */
   onReload?: () => Promise<void> | void;
   /** Onboarding renders it without the settings page chrome. */
   embedded?: boolean;
+  /** Reports whether a key is stored, so onboarding can gate its Continue button. */
+  onConfiguredChange?: (configured: boolean) => void;
 }): React.JSX.Element {
   const [existing, setExisting] = useState<ModelProviderConfiguration>();
   const [apiKey, setApiKey] = useState("");
@@ -39,6 +41,7 @@ export function SparkAiEditor({ runtimeId, onSaved, onReload, embedded }: {
   useEffect(() => { void load(); }, [runtimeId]);
 
   const configured = Boolean(existing?.apiKeyConfigured);
+  useEffect(() => { onConfiguredChange?.(configured); }, [configured]);
 
   const save = async (): Promise<void> => {
     if (!apiKey.trim() && !configured) {

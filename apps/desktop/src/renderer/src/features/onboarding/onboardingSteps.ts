@@ -70,7 +70,7 @@ export function isLastStep(step: OnboardingStepId, steps: readonly OnboardingSte
  * 以为漏了什么。**每一步都能往下走，任何一步都不会把人卡住。**
  */
 export function canSkip(step: OnboardingStepId): boolean {
-  return step === "model" || step === "agents" || step === "memory" || step === "integrations" || step === "workspace";
+  return step === "agents" || step === "memory" || step === "integrations" || step === "workspace";
 }
 
 export function advance(progress: OnboardingProgress, steps: readonly OnboardingStepId[] = ONBOARDING_STEPS): OnboardingProgress {

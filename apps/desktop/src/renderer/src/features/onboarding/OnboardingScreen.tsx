@@ -31,7 +31,7 @@ const HEADINGS: Record<OnboardingStepId, { title: React.ReactNode; lead: string 
   },
   model: {
     title: "配一个模型",
-    lead: "填上 API Key 就能开始，也可以先跳过，之后在设置里补。",
+    lead: "填上 API Key，保存后就能开始使用。",
   },
   agents: {
     title: "把 Agent 配完整",
@@ -82,6 +82,7 @@ export function OnboardingScreen({ configuration, onConfigurationSaved, runtimeI
 }): React.JSX.Element {
   const [progress, setProgress] = useState<OnboardingProgress>(INITIAL_ONBOARDING);
   const [permissions, setPermissions] = useState<MacPermissions>();
+  const [modelReady, setModelReady] = useState(false);
   const steps = onboardingStepsFor(rendererPlatform());
 
   const refresh = useCallback(() => {
@@ -141,7 +142,7 @@ export function OnboardingScreen({ configuration, onConfigurationSaved, runtimeI
               ) : null}
 
               {progress.step === "model" ? (
-                <SparkAiEditor embedded onSaved={onConfigurationSaved} runtimeId={runtimeId} />
+                <SparkAiEditor embedded onConfiguredChange={setModelReady} onSaved={onConfigurationSaved} runtimeId={runtimeId} />
               ) : null}
 
               {progress.step === "agents" ? (
@@ -206,7 +207,7 @@ export function OnboardingScreen({ configuration, onConfigurationSaved, runtimeI
         {index > 0 ? <button className="onboarding-back" type="button" onClick={() => setProgress(goBack(progress, steps))}>上一步</button> : null}
         <span className="spacer" />
         {canSkip(progress.step) ? <button className="onboarding-skip" type="button" onClick={next}>跳过这一步</button> : null}
-        <button className="onboarding-next" type="button" onClick={next}>
+        <button className="onboarding-next" type="button" disabled={progress.step === "model" && !modelReady} onClick={next}>
           {isLastStep(progress.step) ? "开始使用" : "继续"}
         </button>
       </footer>
