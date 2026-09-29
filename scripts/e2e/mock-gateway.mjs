@@ -79,12 +79,12 @@ function chunk(model, delta, finish) {
   })}\n\n`;
 }
 
-export async function startMockGateway({ port = 0, log } = {}) {
+export async function startMockGateway({ port = 0, log, models = [{ id: "mock-1", name: "Mock 1" }] } = {}) {
   const server = createServer(async (request, response) => {
     const path = (request.url ?? "").split("?", 1)[0];
     if (request.method === "GET" && path.endsWith("/models")) {
       response.writeHead(200, { "content-type": "application/json" });
-      response.end(JSON.stringify({ data: [{ id: "mock-1", name: "Mock 1" }] }));
+      response.end(JSON.stringify({ data: models }));
       return;
     }
     if (request.method !== "POST" || !path.endsWith("/chat/completions")) {

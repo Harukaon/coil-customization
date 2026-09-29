@@ -10,7 +10,7 @@ import type {
 } from "@coilcoil/runtime-protocol";
 import { toastError, toastSuccess } from "../../ui/toast";
 import { loadModelCatalog } from "./modelCatalog";
-import { SPARK_API, SPARK_BASE_URL, SPARK_DEFAULT_MODELS, SPARK_PROVIDER_ID, SPARK_PROVIDER_NAME, sparkModelFromUpstream } from "./sparkai";
+import { SPARK_API, SPARK_DEFAULT_MODELS, SPARK_PROVIDER_ID, SPARK_PROVIDER_NAME, sparkBaseUrl, sparkModelFromUpstream } from "./sparkai";
 
 /**
  * The only thing a customer fills in: an API key. The address, protocol and model
@@ -59,7 +59,7 @@ export function SparkAiEditor({ runtimeId, onSaved, onReload, embedded, onConfig
           provider: {
             id: SPARK_PROVIDER_ID,
             name: SPARK_PROVIDER_NAME,
-            baseUrl: SPARK_BASE_URL,
+            baseUrl: sparkBaseUrl(),
             api: SPARK_API,
             headers: {},
             compat: {},
@@ -84,7 +84,7 @@ export function SparkAiEditor({ runtimeId, onSaved, onReload, embedded, onConfig
         await loadModelCatalog();
         const upstream = await window.coilcoil.request<FetchProviderModelsResult>({
           type: "fetch_provider_models",
-          input: { baseUrl: SPARK_BASE_URL, api: SPARK_API, provider: SPARK_PROVIDER_ID },
+          input: { baseUrl: sparkBaseUrl(), api: SPARK_API, provider: SPARK_PROVIDER_ID },
         }, runtimeId);
         if (upstream.models.length) {
           const models = upstream.models.map(sparkModelFromUpstream);

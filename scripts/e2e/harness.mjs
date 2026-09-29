@@ -54,7 +54,13 @@ function freePort() {
  * 默认关着 GPU（稳定、和没有显卡的机器一样，浏览器面板走普通画面）；`gpu: true` 的
  * 场景开着 GPU，浏览器面板走共享纹理画面，和真实用户的 Mac 一样。
  */
-export async function launch({ projects = ["projA", "projB"], remote = false, gpu = false } = {}) {
+/**
+ * `onboarding: true` starts like a customer's first launch: no model configured, the
+ * onboarding screen still up. The Spark AI address is pointed at the mock gateway
+ * (through the `coilcoil.sparkBaseUrl` override) and `sparkModels` is what its
+ * /models answers.
+ */
+export async function launch({ projects = ["projA", "projB"], remote = false, gpu = false, onboarding = false, sparkModels } = {}) {
   const root = mkdtempSync(join(tmpdir(), "coilcoil-e2e-"));
   const data = join(root, "data");
   const home = join(root, "home");
@@ -67,20 +73,22 @@ export async function launch({ projects = ["projA", "projB"], remote = false, gp
     writeFileSync(join(path, "README.md"), `# ${name}\n`);
     return [name, path];
   }));
-  const gateway = await startMockGateway({ log });
+  const gateway = await startMockGateway({ log, ...sparkModels ? { models: sparkModels } : {} });
   const agent = (file, value) => writeFileSync(join(data, "agent", file), JSON.stringify(value, null, 2));
-  agent("models.json", {
-    providers: {
-      mock: {
-        baseUrl: gateway.baseUrl,
-        api: "openai-completions",
-        apiKey: "mock-key",
-        models: [{ id: "mock-1", name: "Mock 1", contextWindow: 200000, maxTokens: 8192, input: ["text"], reasoning: false }],
+  if (!onboarding) {
+    agent("models.json", {
+      providers: {
+        mock: {
+          baseUrl: gateway.baseUrl,
+          api: "openai-completions",
+          apiKey: "mock-key",
+          models: [{ id: "mock-1", name: "Mock 1", contextWindow: 200000, maxTokens: 8192, input: ["text"], reasoning: false }],
+        },
       },
-    },
-  });
-  agent("settings.json", { defaultProvider: "mock", defaultModel: "mock-1" });
-  agent("subagent-settings.json", { models: { explore: "mock/mock-1", reviewer: "mock/mock-1", worker: "mock/mock-1" } });
+    });
+    agent("settings.json", { defaultProvider: "mock", defaultModel: "mock-1" });
+    agent("subagent-settings.json", { models: { explore: "mock/mock-1", reviewer: "mock/mock-1", worker: "mock/mock-1" } });
+  }
   writeFileSync(join(data, "mounted-projects.json"), JSON.stringify(
     Object.entries(paths).map(([name, path]) => ({ name, path, kind: "workspace" })), null, 2));
 
@@ -93,12 +101,14 @@ export async function launch({ projects = ["projA", "projB"], remote = false, gp
   });
   const page = await app.firstWindow();
   await page.waitForFunction(() => Boolean(window.coilcoil), undefined, { timeout: 60_000 });
-  await page.evaluate(() => window.localStorage.setItem("coilcoil.onboarding", JSON.stringify({ completedAt: new Date().toISOString() })));
+  if (onboarding) await page.evaluate((url) => window.localStorage.setItem("coilcoil.sparkBaseUrl", url), gateway.baseUrl);
+  else await page.evaluate(() => window.localStorage.setItem("coilcoil.onboarding", JSON.stringify({ completedAt: new Date().toISOString() })));
   await page.reload();
   await page.waitForFunction(() => Boolean(window.coilcoil), undefined, { timeout: 60_000 });
   // 等输入框下面显示出模型名：界面启动后要先向运行时读一次配置，读回来之前点发送
   // 只会得到「正在读取模型配置」。真人看到的也是这个状态。
-  await page.locator(".agent-mode", { hasText: "Mock 1" }).first().waitFor({ timeout: 60_000 });
+  if (onboarding) await page.getByRole("heading", { name: /待在同一个界面里/ }).waitFor({ timeout: 60_000 });
+  else await page.locator(".agent-mode", { hasText: "Mock 1" }).first().waitFor({ timeout: 60_000 });
   const close = async () => {
     await app.close().catch(() => undefined);
     await new Promise((done) => gateway.server.close(done));

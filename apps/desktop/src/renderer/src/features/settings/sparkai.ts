@@ -10,6 +10,10 @@ export const SPARK_PROVIDER_ID = "sparkai";
 export const SPARK_PROVIDER_NAME = "Spark AI";
 /** new-api gateway: the OpenAI-compatible routes live under /v1. */
 export const SPARK_BASE_URL = "https://ai.sparkai.si/v1";
+/** The address in use. The e2e suite points it at a local mock through this localStorage key. */
+export function sparkBaseUrl(): string {
+  try { return window.localStorage.getItem("coilcoil.sparkBaseUrl") || SPARK_BASE_URL; } catch { return SPARK_BASE_URL; }
+}
 export const SPARK_API = "openai-completions";
 
 /**
