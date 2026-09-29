@@ -9,6 +9,7 @@ import type {
 } from "@coilcoil/runtime-protocol";
 import { Select, type SelectOption } from "../../ui/Select";
 import { toastError, toastSuccess } from "../../ui/toast";
+import { sparkAgentDefaults } from "../settings/sparkai";
 
 const PROFILES: Array<{ id: ConfigurableSubagentProfile; name: string; description: string }> = [
   { id: "explore", name: "Explore", description: "只读搜索与代码梳理" },
@@ -48,7 +49,19 @@ export function OnboardingAgentSetup({ configuration, runtimeId }: { configurati
       window.coilcoil.request<SessionNamingConfiguration>({ type: "get_session_naming_configuration" }, runtimeId),
     ]).then(([subagent, naming]) => {
       if (cancelled) return;
-      setModels(subagent?.models ?? EMPTY_MODELS);
+      const current = subagent?.models ?? EMPTY_MODELS;
+      const untouched = !current.explore && !current.worker && !current.reviewer && !naming?.model;
+      const defaults = untouched ? sparkAgentDefaults(configuration) : undefined;
+      if (defaults) {
+        // Nothing chosen yet: fill it in from the gateway's models and store it, so
+        // skipping the step still leaves a working setup.
+        setModels({ explore: defaults.explore, worker: defaults.worker, reviewer: defaults.reviewer });
+        setNamingModel(defaults.naming);
+        void window.coilcoil.request<SubagentConfiguration>({ type: "save_subagent_configuration", input: { models: { explore: defaults.explore, worker: defaults.worker, reviewer: defaults.reviewer } } }, runtimeId).catch(() => undefined);
+        void window.coilcoil.request<SessionNamingConfiguration>({ type: "save_session_naming_configuration", input: { model: defaults.naming } }, runtimeId).catch(() => undefined);
+        return;
+      }
+      setModels(current);
       setNamingModel(naming?.model ?? "");
     }).catch((caught) => {
       if (!cancelled) toastError(caught instanceof Error ? caught.message : String(caught));

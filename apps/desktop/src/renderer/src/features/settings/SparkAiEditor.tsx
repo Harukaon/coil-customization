@@ -1,13 +1,16 @@
 import { Check, Eye, EyeOff, KeyRound, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type {
+  FetchProviderModelsResult,
   ModelProviderConfiguration,
+  ModelProviderModelConfiguration,
   ModelProviderConfigurationSnapshot,
   ModelProviderSaveResult,
   RuntimeConfiguration,
 } from "@coilcoil/runtime-protocol";
 import { toastError, toastSuccess } from "../../ui/toast";
-import { SPARK_API, SPARK_BASE_URL, SPARK_DEFAULT_MODELS, SPARK_PROVIDER_ID, SPARK_PROVIDER_NAME } from "./sparkai";
+import { loadModelCatalog } from "./modelCatalog";
+import { SPARK_API, SPARK_BASE_URL, SPARK_DEFAULT_MODELS, SPARK_PROVIDER_ID, SPARK_PROVIDER_NAME, sparkModelFromUpstream } from "./sparkai";
 
 /**
  * The only thing a customer fills in: an API key. The address, protocol and model
@@ -50,7 +53,7 @@ export function SparkAiEditor({ runtimeId, onSaved, onReload, embedded, onConfig
     }
     setSaving(true);
     try {
-      const result = await window.coilcoil.request<ModelProviderSaveResult>({
+      const saveProvider = (models: ModelProviderModelConfiguration[], withKey: boolean): Promise<ModelProviderSaveResult> => window.coilcoil.request<ModelProviderSaveResult>({
         type: "save_model_provider_configuration",
         input: {
           provider: {
@@ -63,22 +66,38 @@ export function SparkAiEditor({ runtimeId, onSaved, onReload, embedded, onConfig
             authHeader: false,
             disabled: false,
             replaceModels: true,
-            // Keep whatever catalog is already stored (it may have come from the cloud).
-            models: existing?.models.length ? existing.models : SPARK_DEFAULT_MODELS,
+            models,
             modelOverrides: {},
           },
-          credential: {
+          credential: withKey ? {
             method: "api-key",
             values: { key: apiKey.trim() },
             preserveFields: apiKey.trim() ? [] : ["key"],
-          },
+          } : undefined,
         },
       }, runtimeId);
+      // 1) Store the key. The catalog is a placeholder (or the previous one) until step 2.
+      let result = await saveProvider(existing?.models.length ? existing.models : SPARK_DEFAULT_MODELS, true);
+      // 2) Ask the gateway which models this key can use and make that the catalog.
+      let refreshed = false;
+      try {
+        await loadModelCatalog();
+        const upstream = await window.coilcoil.request<FetchProviderModelsResult>({
+          type: "fetch_provider_models",
+          input: { baseUrl: SPARK_BASE_URL, api: SPARK_API, provider: SPARK_PROVIDER_ID },
+        }, runtimeId);
+        if (upstream.models.length) {
+          result = await saveProvider(upstream.models.map(sparkModelFromUpstream), false);
+          refreshed = true;
+        }
+      } catch (caught) {
+        toastError(`密钥已保存，但获取模型列表失败：${caught instanceof Error ? caught.message : String(caught)}`);
+      }
       setApiKey("");
       onSaved(result.configuration);
       await load();
       await onReload?.();
-      toastSuccess("已保存。");
+      if (refreshed) toastSuccess("已保存，并获取到最新的模型列表。");
     } catch (caught) {
       toastError(caught instanceof Error ? caught.message : String(caught));
     } finally {
