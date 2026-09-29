@@ -87,8 +87,23 @@ export function SparkAiEditor({ runtimeId, onSaved, onReload, embedded, onConfig
           input: { baseUrl: SPARK_BASE_URL, api: SPARK_API, provider: SPARK_PROVIDER_ID },
         }, runtimeId);
         if (upstream.models.length) {
-          result = await saveProvider(upstream.models.map(sparkModelFromUpstream), false);
+          const models = upstream.models.map(sparkModelFromUpstream);
+          result = await saveProvider(models, false);
           refreshed = true;
+          // A fresh install has no default model, and the composer refuses to send
+          // without one. Make the first listed model the default, but never replace
+          // a default that already points at something usable.
+          const current = result.configuration;
+          const currentUsable = current.models.some((model) => model.provider === current.provider && model.id === current.modelId && model.configured);
+          if (!currentUsable) {
+            const first = models[0];
+            result = { ...result, configuration: await window.coilcoil.request<RuntimeConfiguration>({
+              type: "configure_model",
+              provider: SPARK_PROVIDER_ID,
+              modelId: first.id,
+              thinkingLevel: first.reasoning ? "medium" : "off",
+            }, runtimeId) };
+          }
         }
       } catch (caught) {
         toastError(`密钥已保存，但获取模型列表失败：${caught instanceof Error ? caught.message : String(caught)}`);
