@@ -50,19 +50,24 @@ export function OnboardingAgentSetup({ configuration, runtimeId }: { configurati
     ]).then(([subagent, naming]) => {
       if (cancelled) return;
       const current = subagent?.models ?? EMPTY_MODELS;
-      const untouched = !current.explore && !current.worker && !current.reviewer && !naming?.model;
-      const defaults = untouched ? sparkAgentDefaults(configuration) : undefined;
-      if (defaults) {
-        // Nothing chosen yet: fill it in from the gateway's models and store it, so
-        // skipping the step still leaves a working setup.
-        setModels({ explore: defaults.explore, worker: defaults.worker, reviewer: defaults.reviewer });
-        setNamingModel(defaults.naming);
-        void window.coilcoil.request<SubagentConfiguration>({ type: "save_subagent_configuration", input: { models: { explore: defaults.explore, worker: defaults.worker, reviewer: defaults.reviewer } } }, runtimeId).catch(() => undefined);
-        void window.coilcoil.request<SessionNamingConfiguration>({ type: "save_session_naming_configuration", input: { model: defaults.naming } }, runtimeId).catch(() => undefined);
-        return;
+      const defaults = sparkAgentDefaults(configuration);
+      // Fill only the empty slots from the gateway's models; anything already
+      // chosen stays. Store what was filled so skipping the step still leaves a
+      // working setup.
+      const filled = {
+        explore: current.explore || defaults?.explore || "",
+        worker: current.worker || defaults?.worker || "",
+        reviewer: current.reviewer || defaults?.reviewer || "",
+      };
+      const filledNaming = naming?.model || defaults?.naming || "";
+      setModels(filled);
+      setNamingModel(filledNaming);
+      if (defaults && (filled.explore !== current.explore || filled.worker !== current.worker || filled.reviewer !== current.reviewer)) {
+        void window.coilcoil.request<SubagentConfiguration>({ type: "save_subagent_configuration", input: { models: filled } }, runtimeId).catch(() => undefined);
       }
-      setModels(current);
-      setNamingModel(naming?.model ?? "");
+      if (defaults && filledNaming !== (naming?.model ?? "")) {
+        void window.coilcoil.request<SessionNamingConfiguration>({ type: "save_session_naming_configuration", input: { model: filledNaming } }, runtimeId).catch(() => undefined);
+      }
     }).catch((caught) => {
       if (!cancelled) toastError(caught instanceof Error ? caught.message : String(caught));
     }).finally(() => {
