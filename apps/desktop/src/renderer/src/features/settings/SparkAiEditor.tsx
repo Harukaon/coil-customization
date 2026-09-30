@@ -8,6 +8,7 @@ import type {
   ModelProviderSaveResult,
   RuntimeConfiguration,
 } from "@coilcoil/runtime-protocol";
+import { TextField } from "../../ui/form";
 import { toastError, toastSuccess } from "../../ui/toast";
 import { loadModelCatalog } from "./modelCatalog";
 import { SPARK_API, SPARK_DEFAULT_MODELS, SPARK_PROVIDER_ID, SPARK_PROVIDER_NAME, sparkBaseUrl, sparkModelFromUpstream } from "./sparkai";
@@ -117,10 +118,12 @@ export function SparkAiEditor({ runtimeId, onSaved, onConfiguredChange }: {
   };
 
   return <form className="spark-onboard" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-    <label htmlFor="spark-api-key">API Key</label>
+    <label className="spark-onboard-label" htmlFor="spark-api-key">API Key</label>
     <div className="spark-onboard-field">
       <KeyRound size={16} />
-      <input
+      <TextField
+        look="plain"
+        className="spark-onboard-input"
         id="spark-api-key"
         type={revealed ? "text" : "password"}
         value={apiKey}
