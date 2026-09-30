@@ -148,7 +148,7 @@ export function ConversationComposer({
       {images.length ? (
         <div className="composer-images">
           {images.map((image) => (
-            <figure key={image.id ?? image.data.slice(0, 24)} title={image.name}>
+            <figure key={image.id ?? image.data.slice(0, 24)} title={image.name} data-element={image.name?.startsWith("网页元素") ? "" : undefined}>
               <PromptImagePreview image={image} alt={image.name ?? "粘贴的图片"} className="composer-image-preview" />
               <button type="button" aria-label="移除图片" onClick={() => onImagesChange((current) => current.filter((item) => item !== image))}>
                 <X size={11} />

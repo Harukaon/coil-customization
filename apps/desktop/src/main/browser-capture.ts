@@ -41,9 +41,23 @@ export async function captureGuestElement(
   if (!guest || guest.isDestroyed() || !bounds || bounds.width <= 0 || bounds.height <= 0) return undefined;
   if (!guest.debugger.isAttached()) return undefined;
   const padding = 8;
+  // DOM.getBoxModel reports the element relative to the visible viewport, but the
+  // screenshot clip is in page coordinates. On a page scrolled down 1400px the clip
+  // therefore pointed 1400px above the element and came back as an empty area.
+  let pageX = 0;
+  let pageY = 0;
+  try {
+    const metrics = await guest.debugger.sendCommand("Page.getLayoutMetrics") as {
+      cssVisualViewport?: { pageX?: number; pageY?: number };
+    };
+    pageX = metrics.cssVisualViewport?.pageX ?? 0;
+    pageY = metrics.cssVisualViewport?.pageY ?? 0;
+  } catch {
+    // Unscrolled pages still work with a zero offset.
+  }
   const clip = {
-    x: Math.max(0, bounds.x - padding),
-    y: Math.max(0, bounds.y - padding),
+    x: Math.max(0, pageX + bounds.x - padding),
+    y: Math.max(0, pageY + bounds.y - padding),
     width: Math.max(1, bounds.width + padding * 2),
     height: Math.max(1, bounds.height + padding * 2),
     scale: 1,

@@ -944,6 +944,11 @@ body.resizing-panels .app-shell > .inspector-pane { transition: none; }
 .composer-images { display: flex; gap: 8px; padding: 10px 14px 0; overflow-x: auto; }
 .composer-images figure { position: relative; width: 58px; height: 58px; flex: 0 0 auto; margin: 0; }
 .composer-images img { display: block; width: 100%; height: 100%; object-fit: cover; border: 1px solid hsl(var(--th) var(--ts) var(--l-843)); border-radius: var(--radius-2xl); }
+/* 网页元素的截图多半又宽又扁（一行标题、一个按钮）。和粘贴的照片一样裁成 58px 的方块，
+   只剩正中间一小条，文字靠左的元素看上去就是一片空白。按原比例完整缩放，宽的最多 150px。 */
+.composer-images figure[data-element] { width: auto; }
+.composer-images figure[data-element] .composer-image-preview { display: block; width: auto; height: 100%; }
+.composer-images figure[data-element] img { width: auto; max-width: 150px; min-width: 58px; object-fit: contain; background: hsl(var(--th) var(--ts) var(--l-1000)); }
 .composer-images button { position: absolute; top: -5px; right: -5px; display: grid; width: 18px; height: 18px; padding: 0; place-items: center; border: 1px solid hsl(var(--th) var(--ts) var(--l-816)); border-radius: 50%; color: hsl(var(--th) var(--ts) var(--l-339)); background: hsl(var(--th) var(--ts) var(--l-1000)); box-shadow: 0 2px 7px rgb(23 23 20 / 12%); cursor: pointer; }
 .composer textarea, .prompt-editor { display: block; width: 100%; min-height: 42px; max-height: 160px; overflow-x: hidden; overflow-y: auto; padding: 11px 18px 0; resize: none; border: 0; outline: 0; background: transparent; font-size: 14px; line-height: 1.45; }
 .composer textarea { height: 42px; }
