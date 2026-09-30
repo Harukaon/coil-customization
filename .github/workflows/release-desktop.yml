@@ -140,3 +140,65 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: v0.1.0-beta.${{ github.run_number }}
         run: gh release edit "$TAG" --draft=false --prerelease --repo "${{ github.repository }}"
+
+  # Copies the three main installers to our own server so the Spark AI site can
+  # offer them on its Agent page. Runs only after the GitHub release is public;
+  # if it fails, the GitHub release itself is unaffected.
+  publish-to-server:
+    name: Upload installers to our server
+    needs: finalize-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAG: v0.1.0-beta.${{ github.run_number }}
+      DL_HOST: 207.57.131.51
+      DL_PORT: "30680"
+      DL_USER: coil-dl
+      SITE: https://ai.sparkai.si
+    steps:
+      - name: Download the main installers from the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "stage/$TAG"
+          gh release download "$TAG" --repo "${{ github.repository }}" --dir "stage/$TAG" \
+            --pattern '*-arm64.dmg' --pattern '*-arm64.exe' --pattern '*-x64.exe'
+          ls -la "stage/$TAG"
+          test "$(ls "stage/$TAG" | wc -l)" -eq 3
+
+      - name: Write latest.json
+        run: |
+          cd stage
+          mac=$(ls "$TAG"/*-arm64.dmg)
+          winarm=$(ls "$TAG"/*-arm64.exe)
+          winx64=$(ls "$TAG"/*-x64.exe)
+          item() {
+            jq -n --arg p "$1" --arg n "$(basename "$2")" --arg u "/downloads/$TAG/$(basename "$2")" \
+              --argjson s "$(stat -c %s "$2")" --arg h "$(sha256sum "$2" | cut -d' ' -f1)" \
+              '{platform:$p,name:$n,url:$u,size:$s,sha256:$h}'
+          }
+          files=$( { item mac-arm64 "$mac"; item win-x64 "$winx64"; item win-arm64 "$winarm"; } | jq -s . )
+          jq -n --arg v "${TAG#v}" --arg t "$TAG" --arg at "$(date -u +%FT%TZ)" --arg c "${{ github.sha }}" \
+            --argjson f "$files" '{version:$v,tag:$t,publishedAt:$at,commit:$c,files:$f}' > latest.json
+          cat latest.json
+
+      - name: Upload to the server (installers first, latest.json last)
+        env:
+          DL_KEY: ${{ secrets.DOWNLOAD_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DL_KEY" > ~/.ssh/dl_key
+          chmod 600 ~/.ssh/dl_key
+          echo "[$DL_HOST]:$DL_PORT ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHK9L4fwiS1Z6O5/Mqas+tNixKaDJyzH3sLcpqaB0i7O" > ~/.ssh/known_hosts
+          SSH="ssh -i $HOME/.ssh/dl_key -p $DL_PORT -o BatchMode=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes"
+          rsync -rt --partial --chmod=F644,D755 -e "$SSH" "stage/$TAG/" "$DL_USER@$DL_HOST:/$TAG/"
+          rsync -t --chmod=F644 -e "$SSH" stage/latest.json "$DL_USER@$DL_HOST:/latest.json"
+
+      - name: Check the public links work
+        run: |
+          curl -fsS "$SITE/downloads/latest.json" | jq -e --arg t "$TAG" '.tag == $t' >/dev/null
+          for u in $(jq -r '.files[].url' stage/latest.json); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -I "$SITE$u")
+            echo "$code $u"
+            test "$code" = "200"
+          done
