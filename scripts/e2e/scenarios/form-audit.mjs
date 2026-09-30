@@ -125,7 +125,7 @@ export async function run({ app, page, ui, site, check, shot, root, paths }) {
       if ((entry.tag === "input" || entry.tag === "textarea") && !entry.ui) missing.push(`${name}: ${entry.id} ${entry.hint}`);
     }
   };
-  const optional = new Set(["oauth-dialog", "mobile-picker", "bubble", "value-picker"]);
+  const optional = new Set(["oauth-dialog", "mobile-picker", "bubble", "value-picker", "settings-remote"]);
   const step = async (name, action) => {
     try { await action(); } catch (error) {
       result.skipped[name] = String(error.message).split("\n").slice(0, 4).join(" ").slice(0, 300);

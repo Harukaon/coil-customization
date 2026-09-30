@@ -717,7 +717,7 @@ export function SettingsDialog({ configuration, open, onClose, onSaved, runtimeI
               已经整条停用了（#39，见 main/bubble-window.ts）。这里是唯一能进到那页
               的入口，撤掉之后就没有地方能再给气泡设快捷键。页面本身留着，功能回来
               时把这个按钮放回去即可。 */}
-          {mobile ? null : <button className={section === "remote" ? "active" : ""} type="button" onClick={() => setSection("remote")}><Smartphone size={15} />远程控制</button>}
+          {true ? null : <button className={section === "remote" ? "active" : ""} type="button" onClick={() => setSection("remote")}><Smartphone size={15} />远程控制</button>}
           <button className={section === "appearance" ? "active" : ""} type="button" onClick={() => setSection("appearance")}><Palette size={15} />外观</button>
           {onReplayOnboarding && !mobile ? (
             <button className="settings-sidebar-replay" type="button" onClick={onReplayOnboarding}>
