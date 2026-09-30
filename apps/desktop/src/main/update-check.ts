@@ -7,7 +7,8 @@
  * behaves the same on both.
  */
 
-export const UPDATE_REPOSITORY = "Harukaon/CoilCoil";
+// Private-deployment build: update notices come from this repository's own releases, not from stock CoilCoil.
+export const UPDATE_REPOSITORY = "Harukaon/coil-customization";
 
 /** Long enough that a cold start is never competing with a network call. */
 export const UPDATE_FIRST_CHECK_MS = 8_000;
