@@ -96,7 +96,7 @@ export async function launch({ projects = ["projA", "projB"], remote = false, gp
   const app = await electron.launch({
     executablePath: require("electron"),
     args: [join(repositoryRoot, "apps/desktop"), `--user-data-dir=${data}`, "--no-sandbox", ...gpu ? [] : ["--disable-gpu"]],
-    env: { ...process.env, HOME: home, USERPROFILE: home, ...remote ? { COILCOIL_REMOTE_PORT: String(remotePort) } : {} },
+    env: { ...process.env, HOME: home, USERPROFILE: home, COILCOIL_DISABLE_UPDATE_CHECK: "1", ...remote ? { COILCOIL_REMOTE_PORT: String(remotePort) } : {} },
     timeout: 90_000,
   });
   const page = await app.firstWindow();

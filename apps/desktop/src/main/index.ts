@@ -1034,6 +1034,9 @@ function offerUpdate(update: UpdateAvailable): void {
 
 
 function scheduleUpdateChecks(): void {
+  // The end-to-end runs start the app with this set: a "new version" dialog that depends on what
+  // GitHub says that day would cover the window and break whatever the run is doing.
+  if (process.env.COILCOIL_DISABLE_UPDATE_CHECK === "1") return;
   // A failed check is not worth telling anyone about: the user did not ask for
   // it, and an offline machine would otherwise raise a dialog about GitHub.
   const run = (): void => {
