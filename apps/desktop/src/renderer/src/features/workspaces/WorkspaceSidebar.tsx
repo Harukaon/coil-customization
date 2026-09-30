@@ -673,7 +673,7 @@ export function WorkspaceSidebar({
         </section> : null}
         {sectionOrder.map((name) => <Fragment key={name}>{name === "recent" ? recentSection : projectsSection}</Fragment>)}
       </section>
-      <div className="sidebar-footer"><div className="brand-mark"><span className="brand-icon" aria-hidden="true" /></div><div className="brand-copy"><strong>CoilCoil</strong><span>{modelLabel}</span></div><button className="icon-button" type="button" aria-label="设置" onClick={onOpenSettings}><Settings size={17} strokeWidth={1.7} /></button></div>
+      <div className="sidebar-footer"><div className="brand-mark"><span className="brand-icon" aria-hidden="true" /></div><div className="brand-copy"><strong>Spark AI</strong><span>{modelLabel}</span></div><button className="icon-button" type="button" aria-label="设置" onClick={onOpenSettings}><Settings size={17} strokeWidth={1.7} /></button></div>
       {/* 必须排在所有会话/项目按钮之后：它是整个左侧栏顶部的最终 drag 声明。外层
           .app-sidebar-control 在 AppView 里排得更后，所以左上角开关仍然可点击。 */}
       <div className="sidebar-drag window-drag-bar"><WindowDragBar className="sidebar-drag-region" /></div>
