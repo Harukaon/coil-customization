@@ -66,7 +66,8 @@
     "asarUnpack": [
       "**/node-pty/**",
       "**/@silvia-odwyer/photon-node/**",
-      "**/chrome-devtools-mcp/**"
+      "**/chrome-devtools-mcp/**",
+      "**/@coilcoil/workflow/skills/**"
     ],
     "files": [
       "out/**/*",

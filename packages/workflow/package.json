@@ -33,6 +33,9 @@
       "./extensions/zh-cn.ts",
       "./extensions/runtime-bridge.ts",
       "./extensions/setup-tool.ts"
+    ],
+    "skills": [
+      "./skills"
     ]
   },
   "dependencies": {

@@ -29,6 +29,7 @@ import {
   join,
   relative,
   resolve,
+  sep,
 } from "node:path";
 import { resolvePackageDirectory } from "./package-resolution.js";
 import {
@@ -190,12 +191,25 @@ export function issueAgentExtensionPath(workflowDirectory?: string): string {
   return join(resolveWorkflowDirectory(workflowDirectory), "extensions", "issue-agent.ts");
 }
 
+/**
+ * Skills ship scripts that other programs (python, node, a shell) have to open, and
+ * those cannot see inside app.asar. The desktop build unpacks the skills folder
+ * next to the archive (asarUnpack); point at that copy when it exists.
+ */
+export function realFilesystemPath(path: string): string {
+  const marker = `app.asar${sep}`;
+  const at = path.indexOf(marker);
+  if (at < 0) return path;
+  const unpacked = `${path.slice(0, at)}app.asar.unpacked${sep}${path.slice(at + marker.length)}`;
+  return existsSync(unpacked) ? unpacked : path;
+}
+
 export function resourcesFromManifest(directory: string): RuntimeResources {
   const manifestPath = join(directory, "package.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as WorkflowManifest;
   return {
     extensions: (manifest.pi?.extensions ?? []).map((path) => resolve(directory, path)),
-    skills: (manifest.pi?.skills ?? []).map((path) => resolve(directory, path)),
+    skills: (manifest.pi?.skills ?? []).map((path) => realFilesystemPath(resolve(directory, path))),
     prompts: (manifest.pi?.prompts ?? []).map((path) => resolve(directory, path)),
   };
 }
