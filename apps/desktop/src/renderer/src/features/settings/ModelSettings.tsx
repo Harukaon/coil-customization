@@ -27,8 +27,7 @@ import {
 import { Select, type SelectOption } from "../../ui/Select";
 import { UpstreamModelPicker, type UpstreamModelOption } from "./UpstreamModelPicker";
 import { ProviderOAuthDialog } from "./ProviderOAuthDialog";
-import { SparkAiEditor } from "./SparkAiEditor";
-import { SPARK_PROVIDER_ID, SPARK_PROVIDER_NAME } from "./sparkai";
+import { SPARK_API, SPARK_DEFAULT_MODELS, SPARK_PROVIDER_ID, SPARK_PROVIDER_NAME, sparkBaseUrl, sparkCatalogIsSynced, sparkModelFromUpstream } from "./sparkai";
 
 export type EditableModel = ModelProviderModelConfiguration & { uid: string };
 type ProviderDraft = Omit<ModelProviderConfigurationInput["provider"], "models"> & { models: EditableModel[] };
@@ -486,7 +485,6 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
   runtimeId?: string;
 }): React.JSX.Element {
   const [snapshot, setSnapshot] = useState<ModelProviderConfigurationSnapshot>();
-  const [sparkOpen, setSparkOpen] = useState(true);
   const [selectedId, setSelectedId] = useState<string>();
   const [selectedSource, setSelectedSource] = useState<ModelProviderConfiguration["source"]>("built-in");
   const [draft, setDraft] = useState<ProviderDraft>();
@@ -521,7 +519,7 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
     && oauthFlow.status !== "failed"
     && oauthFlow.status !== "cancelled");
   const canRemove = Boolean(selectedId && (selectedSource !== "built-in" || selectedProvider?.apiKeyConfigured));
-  const removeLabel = selectedSource === "built-in" ? "清除配置" : "移除";
+  const removeLabel = selectedSource === "built-in" || draft?.id === SPARK_PROVIDER_ID ? "清除配置" : "移除";
   const currentFingerprint = useMemo(() => draft ? providerFormFingerprint({
     draft,
     providerHeadersText,
@@ -536,8 +534,11 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
   }) : undefined, [credentialDirty, credentialMethod, credentialPreserveFields, credentialValues, draft, modelAdvanced, overridesText, preserveApiKeyReference, providerCompatText, providerHeadersText]);
   const hasUnsavedChanges = Boolean(currentFingerprint && currentFingerprint !== savedFingerprint);
 
-  const applyProvider = (provider: ModelProviderConfiguration, nextConfiguration = configuration): void => {
+  const applyProvider = (provider: ModelProviderConfiguration, nextConfiguration = configuration, sparkSynced?: boolean): void => {
     const nextDraft = draftFromProvider(provider);
+    // Spark AI is stored as a custom provider (which always carries its models), but to the user it is
+    // a built-in one: "保留内置" means its catalog follows the gateway.
+    if (sparkSynced !== undefined) nextDraft.replaceModels = !sparkSynced;
     const nextHeadersText = jsonText(provider.headers);
     const nextCompatText = jsonText(provider.compat);
     const nextOverridesText = jsonText(provider.modelOverrides);
@@ -587,10 +588,9 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
       const next = await window.coilcoil.request<ModelProviderConfigurationSnapshot>({ type: "get_model_provider_configuration" }, runtimeId);
       setSnapshot(next);
       const selected = next.providers.find((provider) => provider.id === preferredId)
-        ?? next.providers.find((provider) => provider.id === nextConfiguration?.provider)
-        ?? next.providers.find((provider) => provider.apiKeyConfigured)
-        ?? next.providers[0];
-      if (selected) applyProvider(selected, nextConfiguration);
+        ?? next.providers.find((provider) => provider.id === SPARK_PROVIDER_ID)
+        ?? sparkPlaceholder();
+      await applyPrepared(selected, nextConfiguration);
     } catch (caught) {
       toastError(caught instanceof Error ? caught.message : String(caught));
     } finally {
@@ -599,6 +599,52 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
   };
 
   useEffect(() => { void load(); }, [runtimeId]);
+
+  /** Spark AI before anything is saved: fixed address and protocol, one placeholder model. */
+  const sparkPlaceholder = (): ModelProviderConfiguration => ({
+    id: SPARK_PROVIDER_ID,
+    name: SPARK_PROVIDER_NAME,
+    baseUrl: sparkBaseUrl(),
+    api: SPARK_API,
+    headers: {},
+    compat: {},
+    authHeader: false,
+    hasPrivateApiKeyReference: false,
+    apiKeyConfigured: false,
+    disabled: false,
+    credential: customCredentialConfiguration(),
+    replaceModels: true,
+    models: SPARK_DEFAULT_MODELS,
+    source: "custom",
+  });
+
+  /** Ask the gateway for its model list, with capabilities filled in from the local catalog. */
+  const fetchSparkCatalog = async (): Promise<EditableModel[]> => {
+    await loadModelCatalog();
+    const result = await window.coilcoil.request<FetchProviderModelsResult>({
+      type: "fetch_provider_models",
+      input: { baseUrl: sparkBaseUrl(), api: SPARK_API, apiKey: draftApiKey(), provider: SPARK_PROVIDER_ID },
+    }, runtimeId);
+    if (!result.models.length) throw new Error("云端没有返回可用模型。");
+    return result.models.map((model) => toEditableModel(sparkModelFromUpstream(model)));
+  };
+
+  /** Show a provider; for Spark AI first work out whether its saved catalog is still the gateway's own. */
+  const applyPrepared = async (provider: ModelProviderConfiguration, nextConfiguration = configuration): Promise<void> => {
+    if (provider.id !== SPARK_PROVIDER_ID) { applyProvider(provider, nextConfiguration); return; }
+    let synced = !provider.apiKeyConfigured;
+    if (provider.apiKeyConfigured) {
+      try {
+        await loadModelCatalog();
+        const result = await window.coilcoil.request<FetchProviderModelsResult>({
+          type: "fetch_provider_models",
+          input: { baseUrl: sparkBaseUrl(), api: SPARK_API, provider: SPARK_PROVIDER_ID },
+        }, runtimeId);
+        synced = sparkCatalogIsSynced(provider.models, result.models.map(sparkModelFromUpstream));
+      } catch { /* offline: show what is saved, editable */ }
+    }
+    applyProvider(provider, nextConfiguration, synced);
+  };
 
   useEffect(() => window.coilcoil.onRuntimeEvent((event, eventRuntimeId) => {
     if (event.type !== "model_provider_auth_updated") return;
@@ -627,7 +673,9 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
   }, [configuration, draft]);
   const activeTestModel = defaultModels.find((model) => model.id === testModelId) ?? defaultModels[0];
   const thinkingOptions = activeTestModel ? modelThinkingLevels(activeTestModel, configuration, draft?.id ?? "").map((level) => THINKING_OPTIONS.find((option) => option.value === level)!).filter(Boolean) : THINKING_OPTIONS.filter((option) => option.value === "off");
-  const isBuiltinProvider = selectedSource !== "custom";
+  const isSpark = draft?.id === SPARK_PROVIDER_ID;
+  // Spark AI is a custom provider underneath, but its page is a built-in one: key, then the model catalog.
+  const isBuiltinProvider = selectedSource !== "custom" || isSpark;
   /* 搜索只挑要画哪几张卡，不动 draft.models 本身——过滤是看的事，删和改都还认
      uid。序号跟着原始位置走，这样「模型 3」在搜与不搜时说的是同一个。 */
   const visibleModels = useMemo(() => {
@@ -637,9 +685,8 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
     return rows.filter(({ model }) => `${model.id} ${model.name ?? ""}`.toLowerCase().includes(query));
   }, [draft?.models, modelQuery]);
 
-  const selectProvider = (provider: ModelProviderConfiguration): void => { setSparkOpen(false); applyProvider(provider); };
+  const selectProvider = (provider: ModelProviderConfiguration): void => { void applyPrepared(provider); };
   const addProvider = (): void => {
-    setSparkOpen(false);
     const ids = new Set(snapshot?.providers.map((provider) => provider.id) ?? []);
     let index = 1;
     while (ids.has(index === 1 ? "custom-provider" : `custom-provider-${index}`)) index += 1;
@@ -682,9 +729,9 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
     setCredentialDirty(true);
   };
 
-  const buildInput = (): ModelProviderConfigurationInput => {
+  const buildInput = (catalog?: EditableModel[]): ModelProviderConfigurationInput => {
     if (!draft) throw new Error("服务商配置仍在加载。");
-    const models = draft.models.map((model) => {
+    const models = (catalog ?? draft.models).map((model) => {
       const advanced = modelAdvanced[model.uid] ?? { thinkingLevelMap: "{}", samplingParams: "{}", headers: "{}", compat: "{}", costTiers: "[]" };
       const { uid: _uid, ...item } = model;
       return {
@@ -703,6 +750,7 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
         name: draft.name?.trim() || undefined,
         baseUrl: draft.baseUrl?.trim() || undefined,
         api: draft.api?.trim() || undefined,
+        ...(isSpark ? { name: SPARK_PROVIDER_NAME, baseUrl: sparkBaseUrl(), api: SPARK_API, replaceModels: true } : {}),
         headers: parseStringMap(providerHeadersText, "服务商请求头"),
         compat: parseJsonObject(providerCompatText, "服务商兼容性参数"),
         modelOverrides: parseJsonObject(overridesText, "模型覆盖 JSON") as ProviderDraft["modelOverrides"],
@@ -720,7 +768,9 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
   const save = async (): Promise<ModelProviderSaveResult | undefined> => {
     setSaving(true);
     try {
-      const result = await window.coilcoil.request<ModelProviderSaveResult>({ type: "save_model_provider_configuration", input: buildInput() }, runtimeId);
+      // "保留内置" for Spark AI: take the gateway's current list as the catalog.
+      const catalog = isSpark && !draft?.replaceModels ? await fetchSparkCatalog() : undefined;
+      const result = await window.coilcoil.request<ModelProviderSaveResult>({ type: "save_model_provider_configuration", input: buildInput(catalog) }, runtimeId);
       onSaved(result.configuration);
       await load(result.provider.id, result.configuration);
       toastSuccess(isBuiltinProvider ? "已保存设置。" : "已保存服务商。");
@@ -901,9 +951,9 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
         <div className="provider-catalog-search"><Search size={14} /><input value={query} placeholder="搜索服务商" onChange={(event) => setQuery(event.target.value)} /></div>
         {loading ? <p className="settings-loading"><LoaderCircle className="spin" size={15} />加载服务商目录…</p> : null}
         <section className="provider-catalog-group">
-          <button className={sparkOpen ? "active" : ""} type="button" onClick={() => setSparkOpen(true)}>
+          <button className={selectedId === SPARK_PROVIDER_ID || (!selectedId && draft?.id === SPARK_PROVIDER_ID) ? "active" : ""} type="button" onClick={() => selectProvider(sparkProvider ?? sparkPlaceholder())}>
             <span><strong>{SPARK_PROVIDER_NAME}</strong><small>{SPARK_PROVIDER_ID}</small></span>
-            <em className={sparkProvider?.apiKeyConfigured ? "configured" : ""}>{sparkProvider?.apiKeyConfigured ? "已配置" : "内置"}</em>
+            <em className={hasUnsavedChanges && isSpark ? "unsaved" : sparkProvider?.apiKeyConfigured ? "configured" : ""}>{hasUnsavedChanges && isSpark ? "未保存" : sparkProvider?.apiKeyConfigured ? "已配置" : "内置"}</em>
           </button>
         </section>
         {([
@@ -922,13 +972,13 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
         </section> : null)}
       </aside>
       <section className="provider-editor">
-        {!draft && !loading && !sparkOpen ? <div className="provider-editor-empty"><CircleDot size={22} /><strong>选择或添加一个服务商</strong><p>所有配置都会写入 CoilCoil 私有运行时的 <code>models.json</code>，不会读取或修改用户的本地 Agent 目录。</p></div> : null}
-        {sparkOpen ? <SparkAiEditor runtimeId={runtimeId} onSaved={onSaved} onReload={() => load(undefined)} /> : draft?.id === "openai-responses-ws" ? <OpenAIResponsesWsEditor runtimeId={runtimeId} onSaved={onSaved} onReload={(next) => load("openai-responses-ws", next)} /> : draft ? <form onSubmit={(event) => { event.preventDefault(); void save(); }}>
+        {!draft && !loading ? <div className="provider-editor-empty"><CircleDot size={22} /><strong>选择或添加一个服务商</strong><p>所有配置都会写入 CoilCoil 私有运行时的 <code>models.json</code>，不会读取或修改用户的本地 Agent 目录。</p></div> : null}
+        {draft?.id === "openai-responses-ws" ? <OpenAIResponsesWsEditor runtimeId={runtimeId} onSaved={onSaved} onReload={(next) => load("openai-responses-ws", next)} /> : draft ? <form onSubmit={(event) => { event.preventDefault(); void save(); }}>
           <header className="provider-editor-heading">
             <div>
-              <div className="provider-heading-tags"><span className="provider-source-tag">{selectedId ? sourceLabel(selectedSource) : "新的自定义服务商"}</span>{hasUnsavedChanges ? <span className="provider-unsaved-tag">未保存</span> : null}</div>
+              <div className="provider-heading-tags"><span className="provider-source-tag">{isSpark ? "内置" : selectedId ? sourceLabel(selectedSource) : "新的自定义服务商"}</span>{hasUnsavedChanges ? <span className="provider-unsaved-tag">未保存</span> : null}</div>
               <strong>{draft.name || draft.id || "未命名服务商"}</strong>
-              {isBuiltinProvider ? <small>请求协议与内置模型由内置服务商决定；认证字段和运行参数按该服务商的真实实现配置。</small> : null}
+              {isSpark ? <small>服务地址已内置，填写 API Key 即可使用；模型目录默认跟随云端。</small> : isBuiltinProvider ? <small>请求协议与内置模型由内置服务商决定；认证字段和运行参数按该服务商的真实实现配置。</small> : null}
             </div>
             <div className="provider-editor-actions">
               <label className="provider-enable-toggle">
@@ -946,13 +996,13 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
           {draft.disabled ? <div className="provider-action-message">已禁用：保存后该服务商不会出现在模型列表中，配置与凭据仍会保留。</div> : null}
           {isBuiltinProvider ? <>
             <ProviderCredentialEditor configuration={credentialConfiguration} method={credentialMethod} values={credentialValues} configured={Boolean(selectedProvider?.apiKeyConfigured && selectedProvider.authType !== "oauth")} oauthConfigured={selectedProvider?.authType === "oauth"} oauthBusy={oauthBusy} onMethodChange={updateCredentialMethod} onValueChange={updateCredentialValue} onOAuthLogin={() => { void startOAuthLogin(); }} onOAuthLogout={() => { void logoutOAuth(); }} />
-            <details className="provider-advanced">
+            {isSpark ? null : <details className="provider-advanced">
               <summary>其他选项 <ChevronRight size={14} /></summary>
               <p>这些选项直接对应 <code>models.json</code> 的服务商覆盖。普通配置不需要填写；“密钥引用”用于通过环境变量或命令延迟取得密钥，不是另一把 API 密钥。</p>
               <div className="settings-grid"><label>服务地址覆盖（Base URL）<input value={draft.baseUrl ?? ""} placeholder="仅代理或私有网关需要" onChange={(event) => setDraft((current) => current ? { ...current, baseUrl: event.target.value } : current)} /></label><label>密钥引用<input value={draft.apiKeyReference ?? ""} placeholder="$PROVIDER_KEY 或 !op read …" onChange={(event) => setDraft((current) => current ? { ...current, apiKeyReference: event.target.value || undefined } : current)} /></label></div>
               <div className="provider-checkbox-row"><label className="checkbox-setting"><input type="checkbox" checked={Boolean(draft.authHeader)} onChange={(event) => setDraft((current) => current ? { ...current, authHeader: event.target.checked } : current)} />自动添加 Authorization: Bearer</label><label className="checkbox-setting"><input type="checkbox" checked={preserveApiKeyReference} onChange={(event) => setPreserveApiKeyReference(event.target.checked)} />保留已有 models.json 密钥/引用</label></div>
               <div className="settings-grid"><label>请求头 JSON<textarea value={providerHeadersText} placeholder={'{ "X-Gateway-Key": "$GATEWAY_KEY" }'} onChange={(event) => setProviderHeadersText(event.target.value)} /></label><label>兼容性 JSON<textarea value={providerCompatText} placeholder={'{ "supportsDeveloperRole": false }'} onChange={(event) => setProviderCompatText(event.target.value)} /></label></div>
-            </details>
+            </details>}
           </> : <>
             <div className="settings-grid"><label>服务商 ID<input value={draft.id} disabled={Boolean(selectedId)} placeholder="例如 dog-provider" onChange={(event) => setDraft((current) => current ? { ...current, id: event.target.value } : current)} /></label><label>显示名称<input value={draft.name ?? ""} placeholder="例如 DogProvider" onChange={(event) => setDraft((current) => current ? { ...current, name: event.target.value } : current)} /></label></div>
             <div className="settings-grid"><label>请求协议<Select value={draft.api ?? ""} options={protocolOptions.filter((option) => option.value)} ariaLabel="请求协议" placeholder="选择协议" onChange={(api) => setDraft((current) => current ? { ...current, api } : current)} searchable /></label><label>Base URL<input value={draft.baseUrl ?? ""} placeholder={draft.api === "anthropic-messages" ? "https://api.anthropic.com" : "https://api.example.com/v1"} onChange={(event) => setDraft((current) => current ? { ...current, baseUrl: event.target.value } : current)} /></label></div>
@@ -966,12 +1016,12 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
             </details>
           </>}
           <section className="provider-models-section">
-            <header><div><strong>模型目录</strong><small>{draft.replaceModels ? "此目录会写入 models.json，并替换该服务商的默认模型目录。" : "保留内置模型目录；如需自定义模型，请启用自定义目录。"}</small></div><div className="provider-model-mode"><button className={!draft.replaceModels ? "active" : ""} type="button" onClick={() => setDraft((current) => current ? { ...current, replaceModels: false } : current)}>保留内置</button><button className={draft.replaceModels ? "active" : ""} type="button" onClick={() => setDraft((current) => {
+            <header><div><strong>模型目录</strong><small>{isSpark ? (draft.replaceModels ? "自定义目录：只保留你留下的模型，可以调整上下文、隐藏不想显示的模型。" : "保留内置：跟随云端的模型列表，每次保存时自动更新。") : draft.replaceModels ? "此目录会写入 models.json，并替换该服务商的默认模型目录。" : "保留内置模型目录；如需自定义模型，请启用自定义目录。"}</small></div><div className="provider-model-mode"><button className={!draft.replaceModels ? "active" : ""} type="button" onClick={() => setDraft((current) => current ? { ...current, replaceModels: false } : current)}>保留内置</button><button className={draft.replaceModels ? "active" : ""} type="button" onClick={() => setDraft((current) => {
               if (!current) return current;
               return { ...current, replaceModels: true, models: current.models.length ? current.models : [blankModel()] };
             })}>自定义目录</button></div></header>
             {!isBuiltinProvider || draft.replaceModels ? <div className="provider-model-toolbar provider-model-toolbar-top">
-              {!isBuiltinProvider ? <button className="secondary-button" type="button" disabled={fetchingModels || saving} onClick={() => void fetchUpstreamModels()}>{fetchingModels ? <LoaderCircle className="spin" size={14} /> : <RefreshCw size={14} />}{fetchingModels ? "正在拉取…" : "拉取上游模型列表"}</button> : null}
+              {!isBuiltinProvider || isSpark ? <button className="secondary-button" type="button" disabled={fetchingModels || saving} onClick={() => void fetchUpstreamModels()}>{fetchingModels ? <LoaderCircle className="spin" size={14} /> : <RefreshCw size={14} />}{fetchingModels ? "正在拉取…" : "拉取上游模型列表"}</button> : null}
               {draft.replaceModels && draft.models.length > 1 ? <label className="provider-model-search">
                 <Search size={14} />
                 <input value={modelQuery} placeholder={`在 ${draft.models.length} 个模型里搜索`} aria-label="搜索模型" onChange={(event) => setModelQuery(event.target.value)} />
@@ -984,9 +1034,9 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
               <div className="provider-model-toolbar">
                 <button className="add-model-button" type="button" onClick={() => { const next = blankModel(); setDraft((current) => current ? { ...current, models: [...current.models, next] } : current); setModelAdvanced((current) => ({ ...current, ...initialAdvancedText([next]) })); /* 新加的那条要立刻能填，也不能被正在生效的搜索藏起来。 */ setModelQuery(""); setExpandedModels((current) => new Set(current).add(next.uid)); }}><Plus size={14} />添加模型</button>
               </div>
-            </> : <><div className="provider-builtins-summary">当前内置目录包含 {defaultModels.length} 个模型。启用“自定义目录”后，你可以只保留需要展示的模型。</div><details className="provider-advanced"><summary>按模型覆盖参数 <ChevronRight size={14} /></summary><p>保留内置目录时，使用 <code>modelOverrides</code> 为任意内置模型配置上下文、输出上限、图片能力、采样或兼容性参数。</p><label>modelOverrides JSON<textarea value={overridesText} placeholder={'{\n  "gpt-5.6": { "contextWindow": 128000, "maxTokens": 16384 }\n}'} onChange={(event) => setOverridesText(event.target.value)} /></label></details></>}
+            </> : <><div className="provider-builtins-summary">{isSpark ? `当前目录包含 ${defaultModels.length} 个模型，保存时会从云端同步最新的列表。选“自定义目录”可以隐藏模型、调整上下文。` : `当前内置目录包含 ${defaultModels.length} 个模型。启用“自定义目录”后，你可以只保留需要展示的模型。`}</div><details className="provider-advanced"><summary>按模型覆盖参数 <ChevronRight size={14} /></summary><p>保留内置目录时，使用 <code>modelOverrides</code> 为任意内置模型配置上下文、输出上限、图片能力、采样或兼容性参数。</p><label>modelOverrides JSON<textarea value={overridesText} placeholder={'{\n  "gpt-5.6": { "contextWindow": 128000, "maxTokens": 16384 }\n}'} onChange={(event) => setOverridesText(event.target.value)} /></label></details></>}
           </section>
-          {!isBuiltinProvider ? <section className="provider-test-card">
+          {!isBuiltinProvider || isSpark ? <section className="provider-test-card">
             <div><strong>测试模型</strong><small>测试只发起一次独立请求，不会创建会话，也不会改变当前或新会话使用的模型。</small></div>
             <div className="settings-grid"><label>模型<Select value={testModelId} options={defaultModels.map((model) => ({ value: model.id, label: model.name || model.id, detail: model.id }))} ariaLabel="要测试的模型" placeholder="请选择模型" onChange={(modelId) => { setTestModelId(modelId); const selected = defaultModels.find((model) => model.id === modelId); const levels: ThinkingLevel[] = selected ? modelThinkingLevels(selected, configuration, draft.id) : ["off"]; setThinkingLevel((current) => levels.includes(current) ? current : levels[0]); }} searchable /></label><label>Thinking<Select value={thinkingLevel} options={thinkingOptions} ariaLabel="测试 Thinking 强度" onChange={(value) => setThinkingLevel(value as ThinkingLevel)} disabled={thinkingOptions.length <= 1} /></label></div>
             <div className="provider-default-actions"><button className="secondary-button" type="button" disabled={saving || testing || !testModelId} onClick={() => void testConnection()}>{testing ? <LoaderCircle className="spin" size={15} /> : <Zap size={15} />}{testing ? "测试中…" : "测试此模型"}</button></div>

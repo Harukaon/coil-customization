@@ -50,3 +50,9 @@ export function sparkAgentDefaults(configuration?: RuntimeConfiguration): { expl
   const at = (index: number): string => { const model = models[index % models.length]; return `${model.provider}/${model.id}`; };
   return { explore: at(0), worker: at(1), reviewer: at(2), naming: at(3) };
 }
+
+/** A saved catalog that is exactly the gateway's list (same ids, same context windows) is "保留内置". */
+export function sparkCatalogIsSynced(stored: ModelProviderModelConfiguration[], cloud: ModelProviderModelConfiguration[]): boolean {
+  return cloud.length > 0 && cloud.length === stored.length
+    && cloud.every((model) => stored.some((entry) => entry.id === model.id && entry.contextWindow === model.contextWindow));
+}

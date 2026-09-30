@@ -142,7 +142,7 @@ export function OnboardingScreen({ configuration, onConfigurationSaved, runtimeI
               ) : null}
 
               {progress.step === "model" ? (
-                <SparkAiEditor embedded onConfiguredChange={setModelReady} onSaved={onConfigurationSaved} runtimeId={runtimeId} />
+                <SparkAiEditor onConfiguredChange={setModelReady} onSaved={onConfigurationSaved} runtimeId={runtimeId} />
               ) : null}
 
               {progress.step === "agents" ? (
