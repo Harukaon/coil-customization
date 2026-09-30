@@ -13,7 +13,8 @@ export const ONBOARDING_STEPS: readonly OnboardingStepId[] = [
   "model",
   "agents",
   "memory",
-  "integrations",
+  // Private-deployment build: the MCP/Skill step is not part of onboarding (skills are
+  // bundled; MCP and skills stay reachable in Settings). Its screen code is untouched.
   "permissions",
   "workspace",
 ];

@@ -45,10 +45,11 @@ export async function run({ page, ui, check, shot }) {
   check("手动改过的 Worker 回来后没被覆盖", (await slot("Worker").innerText()).includes("Spark C"));
   check("其余空位不受影响，Explore 仍是第 1 个", (await slot("Explore").innerText()).includes("Spark A"));
 
-  for (const heading of ["决定记忆怎么工作", "接入 MCP 和 Skill", "系统权限", "挂一个工作区"]) {
+  for (const heading of ["决定记忆怎么工作", "系统权限", "挂一个工作区"]) {
     await next.click();
     await page.getByRole("heading", { name: heading }).waitFor();
   }
+  check("引导里已没有「接入 MCP 和 Skill」这一步", (await page.getByText("扩展", { exact: true }).count()) === 0);
   await next.click(); // 开始使用
 
   await page.locator(".agent-mode", { hasText: "Spark A" }).first().waitFor({ timeout: 30_000 });

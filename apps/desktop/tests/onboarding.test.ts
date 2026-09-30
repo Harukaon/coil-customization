@@ -14,7 +14,7 @@ import {
 } from "../src/renderer/src/features/onboarding/onboardingSteps.ts";
 
 test("引导顺序固定，第一步是介绍，最后一步是挂工作区", () => {
-  assert.deepEqual([...ONBOARDING_STEPS], ["intro", "model", "agents", "memory", "integrations", "permissions", "workspace"]);
+  assert.deepEqual([...ONBOARDING_STEPS], ["intro", "model", "agents", "memory", "permissions", "workspace"]);
   assert.equal(INITIAL_ONBOARDING.step, "intro");
   assert.equal(isLastStep("workspace"), true);
   assert.equal(isLastStep("permissions"), false);
@@ -25,7 +25,7 @@ test("任何一步都走得下去，引导不会把人卡住", () => {
   // 之后我们什么也不做——等于造了一个没有作用的选择，再拿它把用户挡在门外。用户卡在
   // 那一页出不去：「为什么必须让我选一个场景继续啊？这些是可选的」。
   let progress: OnboardingProgress = INITIAL_ONBOARDING;
-  for (const expected of ["model", "agents", "memory", "integrations", "permissions", "workspace"] as const) {
+  for (const expected of ["model", "agents", "memory", "permissions", "workspace"] as const) {
     const next = advance(progress);
     assert.notDeepEqual(next, progress, `${progress.step} 这一步走不下去了`);
     assert.equal(next.step, expected);
@@ -36,9 +36,9 @@ test("任何一步都走得下去，引导不会把人卡住", () => {
 });
 
 test("Windows 和 Linux 不展示无效的 macOS 权限页", () => {
-  assert.deepEqual([...onboardingStepsFor("win32")], ["intro", "model", "agents", "memory", "integrations", "workspace"]);
-  assert.deepEqual([...onboardingStepsFor("linux")], ["intro", "model", "agents", "memory", "integrations", "workspace"]);
-  assert.equal(isLastStep("integrations", onboardingStepsFor("win32")), false);
+  assert.deepEqual([...onboardingStepsFor("win32")], ["intro", "model", "agents", "memory", "workspace"]);
+  assert.deepEqual([...onboardingStepsFor("linux")], ["intro", "model", "agents", "memory", "workspace"]);
+  assert.equal(isLastStep("memory", onboardingStepsFor("win32")), false);
   assert.equal(isLastStep("workspace", onboardingStepsFor("win32")), true);
 });
 
