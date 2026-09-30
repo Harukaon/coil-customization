@@ -9,6 +9,7 @@ import { useState } from "react";
 import type { PlanApprovalState, PlanExecutionTarget } from "@coilcoil/runtime-protocol";
 import { Modal } from "../../ui/dialog";
 import { Markdown } from "../conversation/ConversationTimeline";
+import { TextField } from "../../ui/form";
 
 const SUBAGENT_PROFILES = ["explore", "reviewer", "worker"] as const;
 
@@ -122,7 +123,7 @@ export function PlanApprovalCard({
         </div>
         <label className={`plan-agent-dialog-custom ${!SUBAGENT_PROFILES.includes(profile as (typeof SUBAGENT_PROFILES)[number]) ? "active" : ""}`}>
           <span>其他代理</span>
-          <input
+          <TextField look="plain" className="plan-agent-dialog-input"
             aria-label="其他子 Agent"
             autoComplete="off"
             disabled={Boolean(pendingAction)}

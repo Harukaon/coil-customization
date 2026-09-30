@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { McpConfigurationSnapshot, McpJsonDocument } from "@coilcoil/runtime-protocol";
 import { validateMcpJsonText } from "@coilcoil/runtime-protocol";
 import { toastError, toastSuccess } from "../../ui/toast";
+import { TextArea } from "../../ui/form";
 
 export function McpJsonEditor({
   open,
@@ -93,7 +94,7 @@ export function McpJsonEditor({
         {loading ? (
           <div className="settings-loading"><LoaderCircle className="spin" size={15} />加载配置…</div>
         ) : (
-          <textarea
+          <TextArea
             className="mcp-json-editor"
             spellCheck={false}
             value={draft}
@@ -101,7 +102,7 @@ export function McpJsonEditor({
             aria-invalid={!validation.ok}
           />
         )}
-        <footer>
+        <footer className="ui-form-footer">
           <span className={validation.ok ? "ok" : "error"}>
             {loading ? "" : validation.ok ? "JSON 合法" : validation.error}
           </span>

@@ -14,16 +14,17 @@
 .memory-control-group.end { margin-left: auto; gap: 8px; }
 .memory-control-group > label { display: inline-flex; align-items: center; gap: 6px; color: hsl(var(--th) var(--ts) var(--l-431)); font-size: 11px; white-space: nowrap; cursor: pointer; }
 /* 勾选态用中性主色，不用状态绿：绿在这套界面里只表示「运行中/新增」这类状态。 */
-.memory-control-group input[type="checkbox"] { accent-color: hsl(var(--th) var(--ts) var(--l-310)); }
-.memory-control-group input[type="number"] { box-sizing: border-box; width: 68px; height: 26px; padding: 0 7px; border: 1px solid hsl(var(--th) var(--ts) var(--l-870)); border-radius: var(--radius-lg); outline: 0; color: hsl(var(--th) var(--ts) var(--l-286)); background: hsl(var(--th) var(--ts) var(--l-1000)); font-size: 11px; }
-.memory-control-group input:focus { border-color: hsl(var(--th) var(--ts) var(--l-629)); box-shadow: 0 0 0 2px rgb(120 140 117 / 12%); }
+input.memory-control-checkbox { accent-color: hsl(var(--th) var(--ts) var(--l-310)); }
+/* The type in the selector keeps this rule stronger than the app-wide focus outline (as .memory-control-group input[type="number"] was). */
+input[type="number"].memory-control-number { box-sizing: border-box; width: 68px; height: 26px; padding: 0 7px; border: 1px solid hsl(var(--th) var(--ts) var(--l-870)); border-radius: var(--radius-lg); outline: 0; color: hsl(var(--th) var(--ts) var(--l-286)); background: hsl(var(--th) var(--ts) var(--l-1000)); font-size: 11px; }
+input.memory-control-checkbox:focus, input.memory-control-number:focus { border-color: hsl(var(--th) var(--ts) var(--l-629)); box-shadow: 0 0 0 2px rgb(120 140 117 / 12%); }
 .memory-control-group small { color: hsl(var(--th) var(--ts) var(--l-592)); font-size: 10px; white-space: nowrap; }
 .memory-rules-toggle { display: inline-flex; height: 26px; align-items: center; gap: 4px; padding: 0 10px; border: 1px solid hsl(var(--th) var(--ts) var(--l-870)); border-radius: var(--radius-lg); color: hsl(var(--th) var(--ts) var(--l-431)); background: hsl(var(--th) var(--ts) var(--l-980)); font-size: 11px; white-space: nowrap; cursor: pointer; }
 .memory-rules-toggle:hover { background: hsl(var(--th) var(--ts) var(--l-945)); }
 .memory-run-button { display: inline-flex; height: 26px; align-items: center; gap: 6px; padding: 0 12px; border-radius: var(--radius-lg); color: hsl(var(--th) var(--ts) var(--l-1000)); background: hsl(var(--th) var(--ts) var(--l-310)); font-size: 11px; white-space: nowrap; cursor: pointer; }
 .memory-run-button:disabled { cursor: default; opacity: .45; }
 .memory-rules-strip { display: grid; flex: 0 0 auto; gap: 6px; padding: 12px 26px 14px; border-bottom: 1px solid hsl(var(--th) var(--ts) var(--l-922)); background: hsl(var(--th) var(--ts) var(--l-980)); }
-.memory-rules-strip textarea { box-sizing: border-box; width: 100%; min-height: 72px; resize: vertical; padding: 9px 10px; border: 1px solid hsl(var(--th) var(--ts) var(--l-861)); border-radius: var(--radius-xl); outline: 0; color: hsl(var(--th) var(--ts) var(--l-280)); background: hsl(var(--th) var(--ts) var(--l-1000)); font: 11px/1.6 inherit; }
+textarea.memory-rules-input { box-sizing: border-box; width: 100%; min-height: 72px; resize: vertical; padding: 9px 10px; border: 1px solid hsl(var(--th) var(--ts) var(--l-861)); border-radius: var(--radius-xl); outline: 0; color: hsl(var(--th) var(--ts) var(--l-280)); background: hsl(var(--th) var(--ts) var(--l-1000)); font: 11px/1.6 inherit; }
 .memory-rules-strip p { margin: 0; color: hsl(var(--th) var(--ts) var(--l-590)); font-size: 10px; }
 
 /* 星云本体和右侧的读写面板。 */

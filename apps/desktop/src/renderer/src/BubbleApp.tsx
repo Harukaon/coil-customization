@@ -10,6 +10,7 @@ import {
 } from "./features/conversation/conversationMessages";
 import { toastError } from "./ui/toast";
 import "./bubble.css";
+import { TextArea } from "./ui/form";
 
 /**
  * The floating ask-anything window.
@@ -140,7 +141,7 @@ export function BubbleApp(): React.JSX.Element {
       </div>
 
       <div className="bubble-composer">
-        <textarea
+        <TextArea look="plain" className="bubble-composer-input"
           ref={inputRef}
           value={draft}
           rows={1}

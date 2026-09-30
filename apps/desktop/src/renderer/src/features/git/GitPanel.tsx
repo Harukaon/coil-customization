@@ -9,6 +9,7 @@ import { FileRow } from "./GitFileRow";
 import { GitHistory } from "./GitHistory";
 import { listRepositories, useGit } from "./useGit";
 import "./git.css";
+import { TextArea, TextField } from "../../ui/form";
 
 function BranchMenu({ current, load, onCheckout, onCreate, disabled }: {
   current?: string;
@@ -50,7 +51,7 @@ function BranchMenu({ current, load, onCheckout, onCreate, disabled }: {
             setName("");
             setOpen(false);
           }}>
-            <input value={name} placeholder="新分支名，回车创建并切换" aria-label="新分支名" onChange={(event) => setName(event.target.value)} />
+            <TextField look="plain" className="git-branch-input" value={name} placeholder="新分支名，回车创建并切换" aria-label="新分支名" onChange={(event) => setName(event.target.value)} />
           </form>
         </div>
       ) : null}
@@ -251,7 +252,7 @@ export function GitPanel({ cwd, active }: { cwd?: string; active: boolean }): Re
         ) : null}
 
         <div className="git-commit">
-          <textarea
+          <TextArea look="plain" className="git-commit-input"
             value={message}
             placeholder={status?.branch ? `提交说明（提交到 ${status.branch}）` : "提交说明"}
             aria-label="提交说明"

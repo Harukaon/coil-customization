@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { BrowserValuePicker } from "../../../../shared/desktop-api";
+import { TextField } from "../../ui/form";
 
 /**
  * 网页里日期、时间、颜色输入框的选择器。
@@ -56,7 +57,7 @@ export function PageValuePicker({ picker, scale, onValue, onClose }: {
   }, []);
 
   return (
-    <input
+    <TextField look="plain"
       ref={inputRef}
       className="browser-value-picker"
       type={picker.type}

@@ -2,6 +2,7 @@ import { Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Modal } from "../../ui/dialog";
 import { catalogSourceLabel, loadModelCatalog, lookupModelMeta, type ModelCatalogMeta } from "./modelCatalog";
+import { Checkbox, TextField } from "../../ui/form";
 
 export interface UpstreamModelOption {
   id: string;
@@ -80,7 +81,7 @@ export function UpstreamModelPicker({
           <button type="button" aria-label="关闭" onClick={onCancel}><X size={14} /></button>
         </header>
         <div className="upstream-model-picker-toolbar">
-          <label className="upstream-model-search"><Search size={13} /><input value={query} placeholder="搜索模型 id 或名称" onChange={(event) => setQuery(event.target.value)} /></label>
+          <label className="upstream-model-search"><Search size={13} /><TextField look="plain" className="upstream-model-search-input" value={query} placeholder="搜索模型 id 或名称" onChange={(event) => setQuery(event.target.value)} /></label>
           <button type="button" onClick={selectVisible}>全选当前</button>
           <button type="button" onClick={clearVisible}>清空当前</button>
         </div>
@@ -90,7 +91,7 @@ export function UpstreamModelPicker({
             const meta = catalogReady ? lookupModelMeta(model.id) : undefined;
             return (
               <label key={model.id} className={selected.has(model.id) ? "active" : ""}>
-                <input type="checkbox" checked={selected.has(model.id)} onChange={() => toggle(model.id)} />
+                <Checkbox look="plain" checked={selected.has(model.id)} onChange={() => toggle(model.id)} />
                 <span>
                   <strong>{model.name && model.name !== model.id ? model.name : model.id}</strong>
                   <small>{model.id}</small>

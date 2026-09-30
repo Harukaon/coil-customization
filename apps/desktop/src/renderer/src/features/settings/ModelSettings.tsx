@@ -28,6 +28,7 @@ import { Select, type SelectOption } from "../../ui/Select";
 import { UpstreamModelPicker, type UpstreamModelOption } from "./UpstreamModelPicker";
 import { ProviderOAuthDialog } from "./ProviderOAuthDialog";
 import { SPARK_API, SPARK_DEFAULT_MODELS, SPARK_PROVIDER_ID, SPARK_PROVIDER_NAME, sparkBaseUrl, sparkCatalogIsSynced, sparkModelFromUpstream } from "./sparkai";
+import { Checkbox, Field, TextArea, TextField } from "../../ui/form";
 
 export type EditableModel = ModelProviderModelConfiguration & { uid: string };
 type ProviderDraft = Omit<ModelProviderConfigurationInput["provider"], "models"> & { models: EditableModel[] };
@@ -236,8 +237,8 @@ function methodFields(
   return configuration.methods.find((item) => item.id === method)?.fields ?? [];
 }
 
-function NumberInput({ value, onChange, placeholder }: { value?: number; onChange: (value: number | undefined) => void; placeholder?: string }): React.JSX.Element {
-  return <input type="number" min="0" value={value ?? ""} placeholder={placeholder} onChange={(event) => onChange(event.target.value === "" ? undefined : Number(event.target.value))} />;
+function NumberInput({ value, onChange, placeholder, className }: { value?: number; onChange: (value: number | undefined) => void; placeholder?: string; className?: string }): React.JSX.Element {
+  return <TextField className={className} type="number" min="0" value={value ?? ""} placeholder={placeholder} onChange={(event) => onChange(event.target.value === "" ? undefined : Number(event.target.value))} />;
 }
 
 function ProviderCredentialEditor({
@@ -272,14 +273,15 @@ function ProviderCredentialEditor({
   if (simpleKeyOnly && active) {
     const field = active.fields[0]!;
     return (
-      <label className="provider-credential-compact">
+      <Field className="provider-credential-compact">
         <span>
           {field.label || "API 密钥"}
           <em className={configured ? "configured" : ""}>{configured ? "已配置" : field.required ? "必填" : "可选"}</em>
         </span>
         <span className="secret-input">
           <KeyRound size={13} />
-          <input
+          <TextField
+            className="secret-input-field"
             type="password"
             value={values[field.id] ?? ""}
             autoComplete="off"
@@ -287,7 +289,7 @@ function ProviderCredentialEditor({
             onChange={(event) => onValueChange(field.id, event.target.value)}
           />
         </span>
-      </label>
+      </Field>
     );
   }
   return (
@@ -305,14 +307,14 @@ function ProviderCredentialEditor({
           ? <button type="button" disabled={oauthBusy} onClick={onOAuthLogout}><LogOut size={13} />退出登录</button>
           : <button className="primary" type="button" disabled={oauthBusy} onClick={onOAuthLogin}>{oauthBusy ? <LoaderCircle className="spin" size={13} /> : <LogIn size={13} />}订阅登录</button>}
       </div> : null}
-      {configuration.methods.length > 1 ? <label>API 凭据方式<Select value={active?.id ?? ""} options={configuration.methods.map((item) => ({ value: item.id, label: item.label, detail: item.description }))} ariaLabel="服务商 API 凭据方式" onChange={onMethodChange} /></label> : null}
+      {configuration.methods.length > 1 ? <Field>API 凭据方式<Select value={active?.id ?? ""} options={configuration.methods.map((item) => ({ value: item.id, label: item.label, detail: item.description }))} ariaLabel="服务商 API 凭据方式" onChange={onMethodChange} /></Field> : null}
       {active ? <>
         {active.description && configuration.methods.length > 1 ? <p className="provider-credential-description">{active.description}</p> : null}
-        {active.fields.length ? <div className="provider-credential-fields">{active.fields.map((field) => <label className={field.input === "textarea" ? "wide" : ""} key={field.id}>
+        {active.fields.length ? <div className="provider-credential-fields">{active.fields.map((field) => <Field className={field.input === "textarea" ? "wide" : ""} key={field.id}>
           <span>{field.label}<em className={field.required ? "required" : ""}>{field.required ? "必填" : "可选"}</em></span>
-          {field.input === "textarea" ? <textarea value={values[field.id] ?? ""} placeholder={field.placeholder} onChange={(event) => onValueChange(field.id, event.target.value)} /> : field.input === "secret" ? <span className="secret-input"><KeyRound size={13} /><input type="password" value={values[field.id] ?? ""} autoComplete="off" placeholder={field.configured ? "已配置；留空即可保留" : field.placeholder} onChange={(event) => onValueChange(field.id, event.target.value)} /></span> : <input value={values[field.id] ?? ""} placeholder={field.placeholder} onChange={(event) => onValueChange(field.id, event.target.value)} />}
+          {field.input === "textarea" ? <TextArea value={values[field.id] ?? ""} placeholder={field.placeholder} onChange={(event) => onValueChange(field.id, event.target.value)} /> : field.input === "secret" ? <span className="secret-input"><KeyRound size={13} /><TextField className="secret-input-field" type="password" value={values[field.id] ?? ""} autoComplete="off" placeholder={field.configured ? "已配置；留空即可保留" : field.placeholder} onChange={(event) => onValueChange(field.id, event.target.value)} /></span> : <TextField value={values[field.id] ?? ""} placeholder={field.placeholder} onChange={(event) => onValueChange(field.id, event.target.value)} />}
           {field.description ? <small>{field.description}</small> : null}
-        </label>)}</div> : <p className="provider-credential-description">此方式使用应用运行环境中已经存在的凭据，不需要在这里填写密钥。</p>}
+        </Field>)}</div> : <p className="provider-credential-description">此方式使用应用运行环境中已经存在的凭据，不需要在这里填写密钥。</p>}
       </> : configuration.oauth ? null : <div className="provider-oauth-only"><strong>运行环境凭据</strong><p>此服务商使用应用运行环境中已经存在的认证信息。</p></div>}
       {configuration.oauth && configuration.methods.length ? <div className="provider-oauth-note">订阅登录与 API 凭据是两种独立方式；由于 Pi 每个服务商只保存一份当前凭据，完成其中一种登录会替换另一种。</div> : null}
     </section>
@@ -389,10 +391,10 @@ export function ProviderModelCard({
         <button type="button" aria-label={`移除模型 ${index + 1}`} onClick={onRemove}><Trash2 size={14} />移除</button>
       </header>
       {!expanded ? null : <>
-      <div className="settings-grid provider-model-identity"><label>模型 ID<input value={model.id} placeholder="例如 dog-coder-v1" onChange={(event) => onChange({ ...model, id: event.target.value })} /></label><label>显示名称<input value={model.name ?? ""} placeholder="可选，默认使用模型 ID" onChange={(event) => onChange({ ...model, name: event.target.value })} /></label></div>
-      <div className="settings-grid"><label>协议覆盖<Select value={model.api ?? ""} options={options} ariaLabel={`模型 ${index + 1} 的协议`} onChange={(api) => onChange({ ...model, api: api || undefined })} searchable /></label><label>模型专用 Base URL<input value={model.baseUrl ?? ""} placeholder="可选，默认继承服务商 Base URL" onChange={(event) => onChange({ ...model, baseUrl: event.target.value })} /></label></div>
-      <div className="settings-grid provider-model-capabilities"><label>上下文窗口<NumberInput value={model.contextWindow} placeholder="128000" onChange={(contextWindow) => onChange({ ...model, contextWindow })} /></label><label>最大输出 Token<NumberInput value={model.maxTokens} placeholder="16384" onChange={(maxTokens) => onChange({ ...model, maxTokens })} /></label></div>
-      <div className="provider-checkbox-row"><label className="checkbox-setting"><input type="checkbox" checked={Boolean(model.reasoning)} onChange={(event) => onChange({ ...model, reasoning: event.target.checked })} />支持 Thinking / 推理</label><label className="checkbox-setting"><input type="checkbox" checked={supportsImages} onChange={toggleImage} />支持图片输入</label></div>
+      <div className="settings-grid provider-model-identity"><Field>模型 ID<TextField value={model.id} placeholder="例如 dog-coder-v1" onChange={(event) => onChange({ ...model, id: event.target.value })} /></Field><Field>显示名称<TextField value={model.name ?? ""} placeholder="可选，默认使用模型 ID" onChange={(event) => onChange({ ...model, name: event.target.value })} /></Field></div>
+      <div className="settings-grid"><Field>协议覆盖<Select value={model.api ?? ""} options={options} ariaLabel={`模型 ${index + 1} 的协议`} onChange={(api) => onChange({ ...model, api: api || undefined })} searchable /></Field><Field>模型专用 Base URL<TextField value={model.baseUrl ?? ""} placeholder="可选，默认继承服务商 Base URL" onChange={(event) => onChange({ ...model, baseUrl: event.target.value })} /></Field></div>
+      <div className="settings-grid provider-model-capabilities"><Field>上下文窗口<NumberInput value={model.contextWindow} placeholder="128000" onChange={(contextWindow) => onChange({ ...model, contextWindow })} /></Field><Field>最大输出 Token<NumberInput value={model.maxTokens} placeholder="16384" onChange={(maxTokens) => onChange({ ...model, maxTokens })} /></Field></div>
+      <div className="provider-checkbox-row"><Field className="checkbox-setting"><Checkbox tone="system" checked={Boolean(model.reasoning)} onChange={(event) => onChange({ ...model, reasoning: event.target.checked })} />支持 Thinking / 推理</Field><Field className="checkbox-setting"><Checkbox tone="system" checked={supportsImages} onChange={toggleImage} />支持图片输入</Field></div>
       {model.reasoning ? <div className="provider-thinking-levels">
         <span>可用 Thinking 强度<small>只有勾选的强度会出现在模型选择器里，也只有它们会被发送给服务商</small></span>
         {mappedLevels ? <div className="provider-thinking-options">
@@ -408,10 +410,10 @@ export function ProviderModelCard({
       <details className="provider-advanced">
         <summary>高级模型参数 <ChevronRight size={14} /></summary>
         <p>这些字段直接写入 <code>models.json</code> 模型定义；适合网关兼容性、采样和精确的 Thinking 映射。</p>
-        <div className="provider-cost-grid"><label>输入成本 / M Token<NumberInput value={model.cost?.input} onChange={(value) => updateCost("input", value)} /></label><label>输出成本 / M Token<NumberInput value={model.cost?.output} onChange={(value) => updateCost("output", value)} /></label><label>缓存读取 / M Token<NumberInput value={model.cost?.cacheRead} onChange={(value) => updateCost("cacheRead", value)} /></label><label>缓存写入 / M Token<NumberInput value={model.cost?.cacheWrite} onChange={(value) => updateCost("cacheWrite", value)} /></label></div>
-        <div className="settings-grid"><label>Thinking 映射 JSON<textarea value={advanced.thinkingLevelMap} placeholder={'{ "high": "high", "max": null }'} onChange={(event) => onAdvancedChange({ ...advanced, thinkingLevelMap: event.target.value })} /></label><label>采样参数 JSON<textarea value={advanced.samplingParams} placeholder={'{ "temperature": 0.7, "top_p": 0.95 }'} onChange={(event) => onAdvancedChange({ ...advanced, samplingParams: event.target.value })} /></label></div>
-        <label>成本阶梯 JSON<textarea value={advanced.costTiers} placeholder={'[{ "inputTokensAbove": 272000, "input": 10, "output": 45, "cacheRead": 1, "cacheWrite": 12.5 }]'} onChange={(event) => onAdvancedChange({ ...advanced, costTiers: event.target.value })} /></label>
-        <div className="settings-grid"><label>请求头 JSON<textarea value={advanced.headers} placeholder={'{ "X-Gateway": "value" }'} onChange={(event) => onAdvancedChange({ ...advanced, headers: event.target.value })} /></label><label>兼容性 JSON<textarea value={advanced.compat} placeholder={'{ "supportsDeveloperRole": false }'} onChange={(event) => onAdvancedChange({ ...advanced, compat: event.target.value })} /></label></div>
+        <div className="provider-cost-grid"><Field>输入成本 / M Token<NumberInput className="provider-cost-input" value={model.cost?.input} onChange={(value) => updateCost("input", value)} /></Field><Field>输出成本 / M Token<NumberInput className="provider-cost-input" value={model.cost?.output} onChange={(value) => updateCost("output", value)} /></Field><Field>缓存读取 / M Token<NumberInput className="provider-cost-input" value={model.cost?.cacheRead} onChange={(value) => updateCost("cacheRead", value)} /></Field><Field>缓存写入 / M Token<NumberInput className="provider-cost-input" value={model.cost?.cacheWrite} onChange={(value) => updateCost("cacheWrite", value)} /></Field></div>
+        <div className="settings-grid"><Field>Thinking 映射 JSON<TextArea value={advanced.thinkingLevelMap} placeholder={'{ "high": "high", "max": null }'} onChange={(event) => onAdvancedChange({ ...advanced, thinkingLevelMap: event.target.value })} /></Field><Field>采样参数 JSON<TextArea value={advanced.samplingParams} placeholder={'{ "temperature": 0.7, "top_p": 0.95 }'} onChange={(event) => onAdvancedChange({ ...advanced, samplingParams: event.target.value })} /></Field></div>
+        <Field>成本阶梯 JSON<TextArea value={advanced.costTiers} placeholder={'[{ "inputTokensAbove": 272000, "input": 10, "output": 45, "cacheRead": 1, "cacheWrite": 12.5 }]'} onChange={(event) => onAdvancedChange({ ...advanced, costTiers: event.target.value })} /></Field>
+        <div className="settings-grid"><Field>请求头 JSON<TextArea value={advanced.headers} placeholder={'{ "X-Gateway": "value" }'} onChange={(event) => onAdvancedChange({ ...advanced, headers: event.target.value })} /></Field><Field>兼容性 JSON<TextArea value={advanced.compat} placeholder={'{ "supportsDeveloperRole": false }'} onChange={(event) => onAdvancedChange({ ...advanced, compat: event.target.value })} /></Field></div>
       </details>
       </>}
     </article>
@@ -464,18 +466,18 @@ function OpenAIResponsesWsEditor({ runtimeId, onSaved, onReload }: {
     }
   };
 
-  return <form className="openai-responses-ws-editor" onSubmit={(event) => { event.preventDefault(); void save(); }}>
+  return <form className="ui-form openai-responses-ws-editor" onSubmit={(event) => { event.preventDefault(); void save(); }}>
     <header className="provider-editor-heading">
       <div><span className="provider-source-tag">CoilCoil 自有 Pi 扩展</span><strong>OpenAI Response (WS)</strong><small>面向兼容 OpenAI Codex Responses WebSocket 的服务；支持普通代理 API Key，不要求 ChatGPT accountId，并保持持久 WebSocket。</small></div>
       <button className="primary-button" type="submit" disabled={saving}>{saving ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />}保存并连接</button>
     </header>
     <div className="provider-native-summary"><strong>由 CoilCoil 扩展独立注册</strong><p>内部标识为 <code>openai-responses-ws</code>，不会覆盖已有服务商或 Pi 内置的 <code>openai-codex-responses</code>。模型目录从服务端的 <code>/v1/models?client_version=pi</code> 自动读取。</p></div>
     <div className="settings-grid">
-      <label>服务地址（Base URL）<input value={baseUrl} placeholder="http://127.0.0.1:8317" onChange={(event) => setBaseUrl(event.target.value)} /></label>
-      <label>API Key<span className="secret-input"><KeyRound size={13} /><input type="password" value={apiKey} autoComplete="off" placeholder={configuration?.apiKeyConfigured ? "已配置；留空即可保留" : "粘贴 API Key"} onChange={(event) => setApiKey(event.target.value)} /></span></label>
+      <Field>服务地址（Base URL）<TextField value={baseUrl} placeholder="http://127.0.0.1:8317" onChange={(event) => setBaseUrl(event.target.value)} /></Field>
+      <Field>API Key<span className="secret-input"><KeyRound size={13} /><TextField className="secret-input-field" type="password" value={apiKey} autoComplete="off" placeholder={configuration?.apiKeyConfigured ? "已配置；留空即可保留" : "粘贴 API Key"} onChange={(event) => setApiKey(event.target.value)} /></span></Field>
     </div>
-    <label className="checkbox-setting"><input type="checkbox" checked={fast} onChange={(event) => setFast(event.target.checked)} />启用 Fast / priority mode（仅支持该能力的模型生效）</label>
-    <footer><span>{configuration?.configPath}</span><span className="provider-runtime-note">配置仅保存于 CoilCoil 私有运行时。</span></footer>
+    <Field className="checkbox-setting"><Checkbox tone="system" checked={fast} onChange={(event) => setFast(event.target.checked)} />启用 Fast / priority mode（仅支持该能力的模型生效）</Field>
+    <footer className="ui-form-footer"><span>{configuration?.configPath}</span><span className="provider-runtime-note">配置仅保存于 CoilCoil 私有运行时。</span></footer>
   </form>;
 }
 
@@ -948,7 +950,7 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
       /> : null}
       <aside className="provider-catalog">
         <div className="provider-catalog-toolbar"><strong>服务商</strong><button type="button" aria-label="添加自定义服务商" onClick={addProvider}><Plus size={14} />添加</button></div>
-        <div className="provider-catalog-search"><Search size={14} /><input value={query} placeholder="搜索服务商" onChange={(event) => setQuery(event.target.value)} /></div>
+        <div className="provider-catalog-search"><Search size={14} /><TextField className="provider-catalog-search-input" value={query} placeholder="搜索服务商" onChange={(event) => setQuery(event.target.value)} /></div>
         {loading ? <p className="settings-loading"><LoaderCircle className="spin" size={15} />加载服务商目录…</p> : null}
         <section className="provider-catalog-group">
           <button className={selectedId === SPARK_PROVIDER_ID || (!selectedId && draft?.id === SPARK_PROVIDER_ID) ? "active" : ""} type="button" onClick={() => selectProvider(sparkProvider ?? sparkPlaceholder())}>
@@ -973,7 +975,7 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
       </aside>
       <section className="provider-editor">
         {!draft && !loading ? <div className="provider-editor-empty"><CircleDot size={22} /><strong>选择或添加一个服务商</strong><p>所有配置都会写入 CoilCoil 私有运行时的 <code>models.json</code>，不会读取或修改用户的本地 Agent 目录。</p></div> : null}
-        {draft?.id === "openai-responses-ws" ? <OpenAIResponsesWsEditor runtimeId={runtimeId} onSaved={onSaved} onReload={(next) => load("openai-responses-ws", next)} /> : draft ? <form onSubmit={(event) => { event.preventDefault(); void save(); }}>
+        {draft?.id === "openai-responses-ws" ? <OpenAIResponsesWsEditor runtimeId={runtimeId} onSaved={onSaved} onReload={(next) => load("openai-responses-ws", next)} /> : draft ? <form className="ui-form" onSubmit={(event) => { event.preventDefault(); void save(); }}>
           <header className="provider-editor-heading">
             <div>
               <div className="provider-heading-tags"><span className="provider-source-tag">{isSpark ? "内置" : selectedId ? sourceLabel(selectedSource) : "新的自定义服务商"}</span>{hasUnsavedChanges ? <span className="provider-unsaved-tag">未保存</span> : null}</div>
@@ -981,14 +983,13 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
               {isSpark ? <small>服务地址已内置，填写 API Key 即可使用；模型目录默认跟随云端。</small> : isBuiltinProvider ? <small>请求协议与内置模型由内置服务商决定；认证字段和运行参数按该服务商的真实实现配置。</small> : null}
             </div>
             <div className="provider-editor-actions">
-              <label className="provider-enable-toggle">
-                <input
-                  type="checkbox"
+              <Field className="provider-enable-toggle">
+                <Checkbox tone="system"
                   checked={!draft.disabled}
                   onChange={(event) => setDraft((current) => current ? { ...current, disabled: !event.target.checked } : current)}
                 />
                 启用此服务商
-              </label>
+              </Field>
               {canRemove ? <button className={removeArmed ? "danger-text-button armed" : "danger-text-button"} type="button" disabled={saving} onClick={() => removeArmed ? void remove() : setRemoveArmed(true)}>{removeArmed ? "再次点击确认" : <><Trash2 size={14} />{removeLabel}</>}</button> : null}
               <button className="primary-button" type="submit" disabled={saving}>{saving ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />}{isBuiltinProvider ? "保存设置" : "保存服务商"}</button>
             </div>
@@ -999,20 +1000,20 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
             {isSpark ? null : <details className="provider-advanced">
               <summary>其他选项 <ChevronRight size={14} /></summary>
               <p>这些选项直接对应 <code>models.json</code> 的服务商覆盖。普通配置不需要填写；“密钥引用”用于通过环境变量或命令延迟取得密钥，不是另一把 API 密钥。</p>
-              <div className="settings-grid"><label>服务地址覆盖（Base URL）<input value={draft.baseUrl ?? ""} placeholder="仅代理或私有网关需要" onChange={(event) => setDraft((current) => current ? { ...current, baseUrl: event.target.value } : current)} /></label><label>密钥引用<input value={draft.apiKeyReference ?? ""} placeholder="$PROVIDER_KEY 或 !op read …" onChange={(event) => setDraft((current) => current ? { ...current, apiKeyReference: event.target.value || undefined } : current)} /></label></div>
-              <div className="provider-checkbox-row"><label className="checkbox-setting"><input type="checkbox" checked={Boolean(draft.authHeader)} onChange={(event) => setDraft((current) => current ? { ...current, authHeader: event.target.checked } : current)} />自动添加 Authorization: Bearer</label><label className="checkbox-setting"><input type="checkbox" checked={preserveApiKeyReference} onChange={(event) => setPreserveApiKeyReference(event.target.checked)} />保留已有 models.json 密钥/引用</label></div>
-              <div className="settings-grid"><label>请求头 JSON<textarea value={providerHeadersText} placeholder={'{ "X-Gateway-Key": "$GATEWAY_KEY" }'} onChange={(event) => setProviderHeadersText(event.target.value)} /></label><label>兼容性 JSON<textarea value={providerCompatText} placeholder={'{ "supportsDeveloperRole": false }'} onChange={(event) => setProviderCompatText(event.target.value)} /></label></div>
+              <div className="settings-grid"><Field>服务地址覆盖（Base URL）<TextField value={draft.baseUrl ?? ""} placeholder="仅代理或私有网关需要" onChange={(event) => setDraft((current) => current ? { ...current, baseUrl: event.target.value } : current)} /></Field><Field>密钥引用<TextField value={draft.apiKeyReference ?? ""} placeholder="$PROVIDER_KEY 或 !op read …" onChange={(event) => setDraft((current) => current ? { ...current, apiKeyReference: event.target.value || undefined } : current)} /></Field></div>
+              <div className="provider-checkbox-row"><Field className="checkbox-setting"><Checkbox tone="system" checked={Boolean(draft.authHeader)} onChange={(event) => setDraft((current) => current ? { ...current, authHeader: event.target.checked } : current)} />自动添加 Authorization: Bearer</Field><Field className="checkbox-setting"><Checkbox tone="system" checked={preserveApiKeyReference} onChange={(event) => setPreserveApiKeyReference(event.target.checked)} />保留已有 models.json 密钥/引用</Field></div>
+              <div className="settings-grid"><Field>请求头 JSON<TextArea value={providerHeadersText} placeholder={'{ "X-Gateway-Key": "$GATEWAY_KEY" }'} onChange={(event) => setProviderHeadersText(event.target.value)} /></Field><Field>兼容性 JSON<TextArea value={providerCompatText} placeholder={'{ "supportsDeveloperRole": false }'} onChange={(event) => setProviderCompatText(event.target.value)} /></Field></div>
             </details>}
           </> : <>
-            <div className="settings-grid"><label>服务商 ID<input value={draft.id} disabled={Boolean(selectedId)} placeholder="例如 dog-provider" onChange={(event) => setDraft((current) => current ? { ...current, id: event.target.value } : current)} /></label><label>显示名称<input value={draft.name ?? ""} placeholder="例如 DogProvider" onChange={(event) => setDraft((current) => current ? { ...current, name: event.target.value } : current)} /></label></div>
-            <div className="settings-grid"><label>请求协议<Select value={draft.api ?? ""} options={protocolOptions.filter((option) => option.value)} ariaLabel="请求协议" placeholder="选择协议" onChange={(api) => setDraft((current) => current ? { ...current, api } : current)} searchable /></label><label>Base URL<input value={draft.baseUrl ?? ""} placeholder={draft.api === "anthropic-messages" ? "https://api.anthropic.com" : "https://api.example.com/v1"} onChange={(event) => setDraft((current) => current ? { ...current, baseUrl: event.target.value } : current)} /></label></div>
+            <div className="settings-grid"><Field>服务商 ID<TextField value={draft.id} disabled={Boolean(selectedId)} placeholder="例如 dog-provider" onChange={(event) => setDraft((current) => current ? { ...current, id: event.target.value } : current)} /></Field><Field>显示名称<TextField value={draft.name ?? ""} placeholder="例如 DogProvider" onChange={(event) => setDraft((current) => current ? { ...current, name: event.target.value } : current)} /></Field></div>
+            <div className="settings-grid"><Field>请求协议<Select value={draft.api ?? ""} options={protocolOptions.filter((option) => option.value)} ariaLabel="请求协议" placeholder="选择协议" onChange={(api) => setDraft((current) => current ? { ...current, api } : current)} searchable /></Field><Field>Base URL<TextField value={draft.baseUrl ?? ""} placeholder={draft.api === "anthropic-messages" ? "https://api.anthropic.com" : "https://api.example.com/v1"} onChange={(event) => setDraft((current) => current ? { ...current, baseUrl: event.target.value } : current)} /></Field></div>
             <ProviderCredentialEditor configuration={credentialConfiguration} method={credentialMethod} values={credentialValues} configured={Boolean(selectedProvider?.apiKeyConfigured && selectedProvider.authType !== "oauth")} oauthConfigured={selectedProvider?.authType === "oauth"} oauthBusy={oauthBusy} onMethodChange={updateCredentialMethod} onValueChange={updateCredentialValue} onOAuthLogin={() => { void startOAuthLogin(); }} onOAuthLogout={() => { void logoutOAuth(); }} />
             <details className="provider-advanced">
               <summary>其他选项 <ChevronRight size={14} /></summary>
               <p>密钥引用、Radius OAuth、请求头与兼容性参数都属于高级配置。普通 API 密钥请填写上方输入框。</p>
-              <label>密钥引用<input value={draft.apiKeyReference ?? ""} placeholder="$DOG_PROVIDER_KEY 或 !op read …" onChange={(event) => setDraft((current) => current ? { ...current, apiKeyReference: event.target.value || undefined } : current)} /></label>
-              <div className="provider-checkbox-row"><label className="checkbox-setting"><input type="checkbox" checked={Boolean(draft.authHeader)} onChange={(event) => setDraft((current) => current ? { ...current, authHeader: event.target.checked } : current)} />自动添加 Authorization: Bearer</label><label className="checkbox-setting"><input type="checkbox" checked={draft.oauth === "radius"} onChange={(event) => setDraft((current) => current ? { ...current, oauth: event.target.checked ? "radius" : undefined } : current)} />使用 Radius OAuth</label><label className="checkbox-setting"><input type="checkbox" checked={preserveApiKeyReference} onChange={(event) => setPreserveApiKeyReference(event.target.checked)} />保留已有 models.json 密钥/引用</label></div>
-              <div className="settings-grid"><label>请求头 JSON<textarea value={providerHeadersText} placeholder={'{ "X-Gateway-Key": "$GATEWAY_KEY" }'} onChange={(event) => setProviderHeadersText(event.target.value)} /></label><label>兼容性 JSON<textarea value={providerCompatText} placeholder={'{ "supportsDeveloperRole": false }'} onChange={(event) => setProviderCompatText(event.target.value)} /></label></div>
+              <Field>密钥引用<TextField value={draft.apiKeyReference ?? ""} placeholder="$DOG_PROVIDER_KEY 或 !op read …" onChange={(event) => setDraft((current) => current ? { ...current, apiKeyReference: event.target.value || undefined } : current)} /></Field>
+              <div className="provider-checkbox-row"><Field className="checkbox-setting"><Checkbox tone="system" checked={Boolean(draft.authHeader)} onChange={(event) => setDraft((current) => current ? { ...current, authHeader: event.target.checked } : current)} />自动添加 Authorization: Bearer</Field><Field className="checkbox-setting"><Checkbox tone="system" checked={draft.oauth === "radius"} onChange={(event) => setDraft((current) => current ? { ...current, oauth: event.target.checked ? "radius" : undefined } : current)} />使用 Radius OAuth</Field><Field className="checkbox-setting"><Checkbox tone="system" checked={preserveApiKeyReference} onChange={(event) => setPreserveApiKeyReference(event.target.checked)} />保留已有 models.json 密钥/引用</Field></div>
+              <div className="settings-grid"><Field>请求头 JSON<TextArea value={providerHeadersText} placeholder={'{ "X-Gateway-Key": "$GATEWAY_KEY" }'} onChange={(event) => setProviderHeadersText(event.target.value)} /></Field><Field>兼容性 JSON<TextArea value={providerCompatText} placeholder={'{ "supportsDeveloperRole": false }'} onChange={(event) => setProviderCompatText(event.target.value)} /></Field></div>
             </details>
           </>}
           <section className="provider-models-section">
@@ -1022,11 +1023,11 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
             })}>自定义目录</button></div></header>
             {!isBuiltinProvider || draft.replaceModels ? <div className="provider-model-toolbar provider-model-toolbar-top">
               {!isBuiltinProvider || isSpark ? <button className="secondary-button" type="button" disabled={fetchingModels || saving} onClick={() => void fetchUpstreamModels()}>{fetchingModels ? <LoaderCircle className="spin" size={14} /> : <RefreshCw size={14} />}{fetchingModels ? "正在拉取…" : "拉取上游模型列表"}</button> : null}
-              {draft.replaceModels && draft.models.length > 1 ? <label className="provider-model-search">
+              {draft.replaceModels && draft.models.length > 1 ? <Field className="provider-model-search">
                 <Search size={14} />
-                <input value={modelQuery} placeholder={`在 ${draft.models.length} 个模型里搜索`} aria-label="搜索模型" onChange={(event) => setModelQuery(event.target.value)} />
+                <TextField className="provider-model-search-input" value={modelQuery} placeholder={`在 ${draft.models.length} 个模型里搜索`} aria-label="搜索模型" onChange={(event) => setModelQuery(event.target.value)} />
                 {modelQuery ? <button type="button" aria-label="清除搜索" onClick={() => setModelQuery("")}><X size={13} /></button> : null}
-              </label> : null}
+              </Field> : null}
             </div> : null}
             {draft.replaceModels ? <>
               <div className="provider-model-list">{visibleModels.map(({ model, index }) => <ProviderModelCard key={model.uid} model={model} index={index} apiOptions={protocolOptions} advanced={modelAdvanced[model.uid] ?? { thinkingLevelMap: "{}", samplingParams: "{}", headers: "{}", compat: "{}", costTiers: "[]" }} expanded={expandedModels.has(model.uid)} onToggle={() => setExpandedModels((current) => { const next = new Set(current); if (next.has(model.uid)) next.delete(model.uid); else next.add(model.uid); return next; })} onChange={(next) => updateModel(model.uid, next)} onAdvancedChange={(next) => setModelAdvanced((current) => ({ ...current, [model.uid]: next }))} onRemove={() => { setDraft((current) => current ? { ...current, models: current.models.filter((item) => item.uid !== model.uid) } : current); setModelAdvanced((current) => { const { [model.uid]: _removed, ...rest } = current; return rest; }); }} />)}</div>
@@ -1034,14 +1035,14 @@ export function ModelSettings({ configuration, onSaved, runtimeId }: {
               <div className="provider-model-toolbar">
                 <button className="add-model-button" type="button" onClick={() => { const next = blankModel(); setDraft((current) => current ? { ...current, models: [...current.models, next] } : current); setModelAdvanced((current) => ({ ...current, ...initialAdvancedText([next]) })); /* 新加的那条要立刻能填，也不能被正在生效的搜索藏起来。 */ setModelQuery(""); setExpandedModels((current) => new Set(current).add(next.uid)); }}><Plus size={14} />添加模型</button>
               </div>
-            </> : <><div className="provider-builtins-summary">{isSpark ? `当前目录包含 ${defaultModels.length} 个模型，保存时会从云端同步最新的列表。选“自定义目录”可以隐藏模型、调整上下文。` : `当前内置目录包含 ${defaultModels.length} 个模型。启用“自定义目录”后，你可以只保留需要展示的模型。`}</div><details className="provider-advanced"><summary>按模型覆盖参数 <ChevronRight size={14} /></summary><p>保留内置目录时，使用 <code>modelOverrides</code> 为任意内置模型配置上下文、输出上限、图片能力、采样或兼容性参数。</p><label>modelOverrides JSON<textarea value={overridesText} placeholder={'{\n  "gpt-5.6": { "contextWindow": 128000, "maxTokens": 16384 }\n}'} onChange={(event) => setOverridesText(event.target.value)} /></label></details></>}
+            </> : <><div className="provider-builtins-summary">{isSpark ? `当前目录包含 ${defaultModels.length} 个模型，保存时会从云端同步最新的列表。选“自定义目录”可以隐藏模型、调整上下文。` : `当前内置目录包含 ${defaultModels.length} 个模型。启用“自定义目录”后，你可以只保留需要展示的模型。`}</div><details className="provider-advanced"><summary>按模型覆盖参数 <ChevronRight size={14} /></summary><p>保留内置目录时，使用 <code>modelOverrides</code> 为任意内置模型配置上下文、输出上限、图片能力、采样或兼容性参数。</p><Field>modelOverrides JSON<TextArea value={overridesText} placeholder={'{\n  "gpt-5.6": { "contextWindow": 128000, "maxTokens": 16384 }\n}'} onChange={(event) => setOverridesText(event.target.value)} /></Field></details></>}
           </section>
           {!isBuiltinProvider || isSpark ? <section className="provider-test-card">
             <div><strong>测试模型</strong><small>测试只发起一次独立请求，不会创建会话，也不会改变当前或新会话使用的模型。</small></div>
-            <div className="settings-grid"><label>模型<Select value={testModelId} options={defaultModels.map((model) => ({ value: model.id, label: model.name || model.id, detail: model.id }))} ariaLabel="要测试的模型" placeholder="请选择模型" onChange={(modelId) => { setTestModelId(modelId); const selected = defaultModels.find((model) => model.id === modelId); const levels: ThinkingLevel[] = selected ? modelThinkingLevels(selected, configuration, draft.id) : ["off"]; setThinkingLevel((current) => levels.includes(current) ? current : levels[0]); }} searchable /></label><label>Thinking<Select value={thinkingLevel} options={thinkingOptions} ariaLabel="测试 Thinking 强度" onChange={(value) => setThinkingLevel(value as ThinkingLevel)} disabled={thinkingOptions.length <= 1} /></label></div>
+            <div className="settings-grid"><Field>模型<Select value={testModelId} options={defaultModels.map((model) => ({ value: model.id, label: model.name || model.id, detail: model.id }))} ariaLabel="要测试的模型" placeholder="请选择模型" onChange={(modelId) => { setTestModelId(modelId); const selected = defaultModels.find((model) => model.id === modelId); const levels: ThinkingLevel[] = selected ? modelThinkingLevels(selected, configuration, draft.id) : ["off"]; setThinkingLevel((current) => levels.includes(current) ? current : levels[0]); }} searchable /></Field><Field>Thinking<Select value={thinkingLevel} options={thinkingOptions} ariaLabel="测试 Thinking 强度" onChange={(value) => setThinkingLevel(value as ThinkingLevel)} disabled={thinkingOptions.length <= 1} /></Field></div>
             <div className="provider-default-actions"><button className="secondary-button" type="button" disabled={saving || testing || !testModelId} onClick={() => void testConnection()}>{testing ? <LoaderCircle className="spin" size={15} /> : <Zap size={15} />}{testing ? "测试中…" : "测试此模型"}</button></div>
           </section> : null}
-          <footer><span>{snapshot?.configPath}</span><span className="provider-runtime-note">内置协议、模型覆盖和凭据都在 CoilCoil 私有运行时中处理。</span></footer>
+          <footer className="ui-form-footer"><span>{snapshot?.configPath}</span><span className="provider-runtime-note">内置协议、模型覆盖和凭据都在 CoilCoil 私有运行时中处理。</span></footer>
         </form> : null}
       </section>
     </div>

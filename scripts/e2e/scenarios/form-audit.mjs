@@ -87,14 +87,36 @@ export async function run({ app, page, ui, site, check, shot, root, paths }) {
   const missing = [];
   page.setDefaultTimeout(8_000);
 
-  const audit = async (name, target = page, settle = 450) => {
+  // Entrance animations (onboarding steps fade and slide in) would otherwise be caught mid-flight and show up as a difference.
+  const settled = (target) => target.evaluate(async () => {
+    const wait = (work, limit) => Promise.race([work, new Promise((resolve) => setTimeout(resolve, limit))]);
+    await wait(document.fonts.ready, 3_000); // a font swap re-wraps text, which moves sizes
+    await wait(Promise.all(document.getAnimations()
+      .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+      .map((animation) => animation.finished.catch(() => undefined))), 3_000);
+  });
+  const audit = async (name, target = page, settle = 450, { withDark = true, loop = true, focus = true } = {}) => {
     await target.waitForTimeout(settle);
-    const light = await target.evaluate(collect);
-    const deltas = await focusDeltas(app, target.url());
-    light.order.forEach((id, index) => { light.entries[id].focus = deltas[index] ?? {}; });
+    await settled(target);
+    // Whatever happened to be focused would otherwise decide the border of the field around it.
+    if (focus) await target.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());
+    // Things arrive late (a model list, a config path): read until two reads in a row agree.
+    let light = await target.evaluate(collect);
+    for (let attempt = 0; loop && attempt < 12; attempt += 1) {
+      await target.waitForTimeout(200);
+      const again = await target.evaluate(collect);
+      const stable = JSON.stringify(again) === JSON.stringify(light);
+      light = again;
+      if (stable) break;
+    }
+    if (focus) {
+      const deltas = await focusDeltas(app, target.url());
+      light.order.forEach((id, index) => { light.entries[id].focus = deltas[index] ?? {}; });
+    }
     const screen = { entries: light.entries };
-    if (OUT) {
+    if (OUT && withDark) {
       await target.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
+      await settled(target);
       screen.dark = (await target.evaluate(collect)).entries;
       await target.evaluate(() => document.documentElement.removeAttribute("data-theme"));
     }
@@ -200,9 +222,13 @@ export async function run({ app, page, ui, site, check, shot, root, paths }) {
     });
     const { d, width, height } = JSON.parse(layout);
     const scale = Math.min(area.width / width, area.height / height);
-    await page.mouse.click(area.x + (d.right - 12) * scale, area.y + (d.y + d.height / 2) * scale);
-    await page.locator(".browser-value-picker").waitFor({ timeout: 5_000 });
-    await audit("value-picker", page, 0);
+    // The page is still settling right after it opens, so a click can land beside the icon: try again.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await page.mouse.click(area.x + (d.right - 12) * scale, area.y + (d.y + d.height / 2) * scale);
+      if (await page.locator(".browser-value-picker").waitFor({ timeout: 2_500 }).then(() => true, () => false)) break;
+    }
+    await page.locator(".browser-value-picker").waitFor({ timeout: 2_500 });
+    await audit("value-picker", page, 0, { withDark: false, loop: false, focus: false }); // the popup closes by itself: one read, no focus probe, light only
     await page.keyboard.press("Escape");
   });
 
@@ -350,7 +376,7 @@ export async function run({ app, page, ui, site, check, shot, root, paths }) {
   await step("spark", async () => {
     await openSettings("模型与服务商");
     const spark = page.locator(".provider-catalog").getByRole("button", { name: /Spark AI/ });
-    if (!(await spark.count())) return;
+    if (!(await spark.count())) { await backToWorkspace(); return; }
     await spark.first().click();
     await page.waitForTimeout(800);
     await audit("spark-page");

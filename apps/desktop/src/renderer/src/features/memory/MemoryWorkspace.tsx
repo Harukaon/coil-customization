@@ -12,6 +12,7 @@ import { MemoryNebula } from "./MemoryNebula";
 import type { NebulaNode } from "./nebulaLayout";
 import { memoryMaxChars } from "./memoryState";
 import "./memory.css";
+import { Checkbox, TextArea, TextField } from "../../ui/form";
 
 function charCount(value: string): number {
   return Array.from(value).length;
@@ -207,14 +208,14 @@ export function MemoryWorkspace({
           {/* 固定选项放在最上面：它们管的是整个记忆模块，不属于底下任何一个节点。 */}
           <div className="memory-controls">
             <div className="memory-control-group">
-              <label><input type="checkbox" checked={settings.globalEnabled} onChange={(event) => updateSettings("globalEnabled", event.target.checked)} /><span>注入全局记忆</span></label>
-              <label><input type="checkbox" checked={settings.projectEnabled} onChange={(event) => updateSettings("projectEnabled", event.target.checked)} /><span>注入项目记忆</span></label>
-              <label><input type="checkbox" checked={settings.autoSummarize} onChange={(event) => updateSettings("autoSummarize", event.target.checked)} /><span>回复后自动整理</span></label>
+              <label><Checkbox look="plain" className="memory-control-checkbox" checked={settings.globalEnabled} onChange={(event) => updateSettings("globalEnabled", event.target.checked)} /><span>注入全局记忆</span></label>
+              <label><Checkbox look="plain" className="memory-control-checkbox" checked={settings.projectEnabled} onChange={(event) => updateSettings("projectEnabled", event.target.checked)} /><span>注入项目记忆</span></label>
+              <label><Checkbox look="plain" className="memory-control-checkbox" checked={settings.autoSummarize} onChange={(event) => updateSettings("autoSummarize", event.target.checked)} /><span>回复后自动整理</span></label>
             </div>
             <div className="memory-control-group">
-              <label><span>全局上限</span><input type="number" min={100} max={1000000} step={100} value={settings.globalMaxChars} onChange={(event) => updateSettings("globalMaxChars", Math.max(100, Number(event.target.value) || 100))} /></label>
-              <label><span>索引上限</span><input type="number" min={100} max={1000000} step={100} value={settings.projectMaxChars} onChange={(event) => updateSettings("projectMaxChars", Math.max(100, Number(event.target.value) || 100))} /></label>
-              <label><span>整理间隔</span><input type="number" min={1} max={1000} step={1} value={settings.summarizeEveryTurns} onChange={(event) => updateSettings("summarizeEveryTurns", Math.min(1000, Math.max(1, Math.round(Number(event.target.value) || 1))))} /><small>轮（已 {configuration.turnsSinceSummary.toLocaleString()}）</small></label>
+              <label><span>全局上限</span><TextField look="plain" className="memory-control-number" type="number" min={100} max={1000000} step={100} value={settings.globalMaxChars} onChange={(event) => updateSettings("globalMaxChars", Math.max(100, Number(event.target.value) || 100))} /></label>
+              <label><span>索引上限</span><TextField look="plain" className="memory-control-number" type="number" min={100} max={1000000} step={100} value={settings.projectMaxChars} onChange={(event) => updateSettings("projectMaxChars", Math.max(100, Number(event.target.value) || 100))} /></label>
+              <label><span>整理间隔</span><TextField look="plain" className="memory-control-number" type="number" min={1} max={1000} step={1} value={settings.summarizeEveryTurns} onChange={(event) => updateSettings("summarizeEveryTurns", Math.min(1000, Math.max(1, Math.round(Number(event.target.value) || 1))))} /><small>轮（已 {configuration.turnsSinceSummary.toLocaleString()}）</small></label>
             </div>
             <div className="memory-control-group end">
               <button className="memory-rules-toggle" type="button" aria-expanded={rulesOpen} onClick={() => setRulesOpen((open) => !open)}>
@@ -226,7 +227,7 @@ export function MemoryWorkspace({
             </div>
           </div>
           {rulesOpen ? <div className="memory-rules-strip">
-            <textarea value={settings.generationRules} onChange={(event) => updateSettings("generationRules", event.target.value)} spellCheck={false} aria-label="记忆生成规则" />
+            <TextArea look="plain" className="memory-rules-input" value={settings.generationRules} onChange={(event) => updateSettings("generationRules", event.target.value)} spellCheck={false} aria-label="记忆生成规则" />
             <p>这段规则会随记忆一起进系统提示，决定后台整理时什么该记、什么不该记。</p>
           </div> : null}
 
@@ -249,7 +250,7 @@ export function MemoryWorkspace({
                 </header>
                 {/* 路径从右往左省略：尾巴上的文件名比开头那一长串目录有用得多。 */}
                 <code title={selected.filePath}>{shortPath(selected.filePath)}</code>
-                <textarea
+                <TextArea look="plain"
                   className="memory-content-editor"
                   value={selectedDraft}
                   onChange={(event) => setDrafts((current) => ({ ...current, [selected.filePath]: event.target.value }))}

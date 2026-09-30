@@ -28,6 +28,7 @@ import {
   toggledVisibility,
   type McpVisibilityOverrides,
 } from "./mcpPolicy";
+import { Checkbox, TextArea } from "../../ui/form";
 
 const kindLabel: Record<RuntimeSummaryEvent["kind"], string> = {
   compaction: "上下文压缩",
@@ -549,8 +550,7 @@ export function RuntimePanel({
               <strong>强制填写调用目的</strong>
               <small>写进工具 schema 并注入系统提示词；不合规的调用会被拦下</small>
             </span>
-            <input
-              type="checkbox"
+            <Checkbox look="plain" className="runtime-toggle-input"
               aria-label="强制工具调用填写目的"
               checked={configuration?.toolPurposeAuditEnabled ?? true}
               disabled={busyAction === "tool-purpose" || !runtimeId}
@@ -648,7 +648,7 @@ export function RuntimePanel({
       >
         <div className="runtime-prompt-modal">
           {inspection?.effectiveSystemPrompt ? editingPrompt
-            ? <textarea value={promptDraft} onChange={(event) => setPromptDraft(event.currentTarget.value)} spellCheck={false} />
+            ? <TextArea look="plain" className="runtime-prompt-textarea" value={promptDraft} onChange={(event) => setPromptDraft(event.currentTarget.value)} spellCheck={false} />
             : <pre>{inspection.effectiveSystemPrompt}</pre>
           : <p className="runtime-muted">发送下一条消息后会捕获本次请求真正生效的 System Prompt。</p>}
         </div>

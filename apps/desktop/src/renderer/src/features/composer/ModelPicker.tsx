@@ -5,6 +5,7 @@ import { useMobileRemote } from "../../hooks/useMobileRemote";
 import { MobileModelPicker } from "./MobileModelPicker";
 import type { ModelOption, RuntimeConfiguration, SessionSnapshot, ThinkingLevel } from "@coilcoil/runtime-protocol";
 import { hasConfigurableThinkingLevel } from "./modelPickerCapabilities";
+import { TextField } from "../../ui/form";
 
 const THINKING_LABELS: Record<ThinkingLevel, string> = {
   off: "Off",
@@ -85,7 +86,7 @@ export function ModelPicker({
 
   const modelList = (
     <>
-      <div className="model-popover-search"><Search size={13} /><input autoFocus value={search} placeholder="搜索模型名称或 ID" onChange={(event) => setSearch(event.target.value)} /></div>
+      <div className="model-popover-search"><Search size={13} /><TextField look="plain" className="model-popover-search-input" autoFocus value={search} placeholder="搜索模型名称或 ID" onChange={(event) => setSearch(event.target.value)} /></div>
       <div className="model-popover-list">
         {groups.map(([provider, group]) => <section className="model-provider-group" key={provider}>
           <h3>{group.name}</h3>

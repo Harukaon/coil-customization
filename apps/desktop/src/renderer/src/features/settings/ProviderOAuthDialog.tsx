@@ -4,6 +4,7 @@ import type { ModelProviderAuthState } from "@coilcoil/runtime-protocol";
 import { Modal } from "../../ui/dialog";
 import { toastError, toastSuccess } from "../../ui/toast";
 import { oauthCallbackUrl } from "./providerOAuthPresentation";
+import { TextField } from "../../ui/form";
 
 function browserUrl(state: ModelProviderAuthState): string | undefined {
   return state.authUrl?.url ?? state.deviceCode?.verificationUri ?? state.links?.[0]?.url;
@@ -98,7 +99,7 @@ export function ProviderOAuthDialog({
           </div>
         </section> : state.prompt ? <form className="provider-oauth-prompt" onSubmit={(event) => { event.preventDefault(); void submit(state.prompt!.id, value); }}>
           <label htmlFor="provider-oauth-answer">{state.prompt.message}</label>
-          <input
+          <TextField look="plain" className="provider-oauth-input"
             id="provider-oauth-answer"
             type={state.prompt.type === "secret" ? "password" : "text"}
             value={value}

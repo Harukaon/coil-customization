@@ -1,3 +1,5 @@
+// First on purpose: every other stylesheet, including the ones components pull in, must come after the form base so a class given to a control overrides it.
+import "./ui/form/form.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";

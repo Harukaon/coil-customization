@@ -5,6 +5,7 @@ import type { BrowserDataStats, ImportableProfile } from "../../../../shared/des
 import { ConfirmDialog } from "../../ui/dialog";
 import { toastError, toastInfo, toastSuccess } from "../../ui/toast";
 import { rendererPlatform } from "../../platform";
+import { Checkbox } from "../../ui/form";
 
 function profileKey(profile: ImportableProfile): string {
   return `${profile.browser}:${profile.id}`;
@@ -185,7 +186,7 @@ export function BrowserDataMenu(): React.JSX.Element | null {
             )}
 
             <label className="browser-identity-check">
-              <input type="checkbox" checked={withPasswords} onChange={(event) => setWithPasswords(event.target.checked)} />
+              <Checkbox look="plain" className="browser-identity-check-input" checked={withPasswords} onChange={(event) => setWithPasswords(event.target.checked)} />
               <span>连保存的密码一起导入<small>只用于内置浏览器登录页自动填充，不会交给模型</small></span>
             </label>
 

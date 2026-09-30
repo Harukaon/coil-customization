@@ -8,6 +8,7 @@ import {
   mcpAuthTitle,
   type McpAuthFlowState,
 } from "./mcpAuthPresentation";
+import { TextArea } from "../../ui/form";
 
 /**
  * What the user sees after pressing 认证 on an MCP server.
@@ -69,7 +70,7 @@ export function McpAuthDialog({
           onSubmit={(event) => { event.preventDefault(); onManualComplete(manualInput.trim()); }}
         >
           <label htmlFor="mcp-auth-manual-input">浏览器没有自动回来？粘贴地址栏里的完整回调地址或授权码</label>
-          <textarea
+          <TextArea look="plain" className="provider-oauth-input"
             id="mcp-auth-manual-input"
             value={manualInput}
             placeholder="http://localhost:.../callback?code=..."

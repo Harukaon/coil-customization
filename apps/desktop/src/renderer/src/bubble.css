@@ -70,7 +70,7 @@ html.bubble, html.bubble body, html.bubble #root { height: 100%; background: tra
 
 .bubble-composer { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid hsl(var(--th) var(--ts) var(--l-886)); }
 
-.bubble-composer textarea {
+textarea.bubble-composer-input {
   min-height: 34px;
   max-height: 132px;
   flex: 1;
@@ -85,7 +85,7 @@ html.bubble, html.bubble body, html.bubble #root { height: 100%; background: tra
   resize: none;
 }
 
-.bubble-composer textarea:focus { border-color: hsl(var(--th) var(--ts) var(--l-700)); }
+textarea.bubble-composer-input:focus { border-color: hsl(var(--th) var(--ts) var(--l-700)); }
 
 .bubble-send {
   display: grid;

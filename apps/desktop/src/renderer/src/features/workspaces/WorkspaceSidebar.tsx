@@ -34,6 +34,7 @@ import { collectRecentSessions, DEFAULT_RECENT_ROWS, loadRecentSectionCollapsed,
 import { rendererPlatform } from "../../platform";
 import { dropSidebarSection, loadSidebarSectionOrder, saveSidebarSectionOrder, SIDEBAR_SECTION_LABELS, type SidebarSection } from "./sidebarSections";
 import { collectPinnedSessions, collapsedSessionLimit, conversationStatusKind, nextExpandedSessionLimit, SESSION_EXPANSION_BATCH, summarizeWorkspaceActivity, visibleProjectSessions, workspaceActivityLabel, type ConversationStatusKind, type PinnedSessionEntry } from "./sessionList";
+import { TextField } from "../../ui/form";
 
 export interface SessionActivityState {
   runtimeId?: string;
@@ -193,7 +194,7 @@ function CrossProjectSessionRow({ project, session, activity, pinned, variant, a
         {renaming ? (
           <div className={`conversation-row renaming ${variant}-conversation-row ${active ? "active" : ""}`}>
             {status ? <span className="conversation-status">{status}</span> : null}
-            <input
+            <TextField look="plain"
               ref={renameRef}
               className="conversation-rename-input"
               value={renameDraft}
@@ -541,7 +542,7 @@ export function WorkspaceSidebar({
                       {renaming ? (
                         <div className={`conversation-row renaming ${project.path === activeProject?.path && session.id === activeSessionId ? "active" : ""}`}>
                           {session.pinned ? <span className="conversation-status"><Pin size={11} strokeWidth={2} /></span> : null}
-                          <input
+                          <TextField look="plain"
                             ref={renameRef}
                             className="conversation-rename-input"
                             value={renameDraft}

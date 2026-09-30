@@ -1,0 +1,26 @@
+/* The standard look of form controls, written once.
+ *
+ * Nothing else in the app should style a bare <input>, <textarea> or <label> by where it sits
+ * (".some-page input { ... }"): a control gets its look from the component that renders it
+ * (ui/form) and from the class it is given. A container-wide rule reaches every control that
+ * ever lands inside it, which is why a new field used to come out wrong on its first try.
+ *
+ * Loaded before every other stylesheet, so a class passed to a control overrides the base.
+ */
+
+/* Caption above the control. */
+.ui-field { display: grid; gap: 7px; color: hsl(var(--th) var(--ts) var(--l-357)); font-size: 11px; font-weight: 550; }
+
+/* Text and multi-line controls share the frame. */
+.ui-input, .ui-textarea { width: 100%; border: 1px solid hsl(var(--th) var(--ts) var(--l-833)); border-radius: var(--radius-xl); color: hsl(var(--th) var(--ts) var(--l-198)); background: hsl(var(--th) var(--ts) var(--l-1000)); font-size: 11px; }
+.ui-input { height: 34px; padding: 0 9px; }
+.ui-textarea { min-height: 72px; resize: vertical; padding: 8px 9px; font: 10px/1.5 var(--font-mono, "SFMono-Regular", Consolas, monospace); }
+
+/* Checkbox: 14px; the tick colour is the theme's main colour unless `tone="system"` leaves it to the browser. */
+.ui-checkbox { width: 14px; height: 14px; flex: 0 0 auto; }
+.ui-checkbox--neutral { accent-color: hsl(var(--th) var(--ts) var(--l-310)); }
+
+/* A form inside a settings-style page, and the row of actions under it. */
+.ui-form { display: grid; gap: 15px; padding: 22px 26px 26px; }
+.ui-form-footer { display: flex; align-items: center; gap: 12px; padding-top: 3px; flex-wrap: wrap; }
+.ui-form-footer > span { min-width: 0; flex: 1; color: hsl(var(--th) var(--ts) var(--l-527)); font-size: 10px; overflow-wrap: anywhere; }

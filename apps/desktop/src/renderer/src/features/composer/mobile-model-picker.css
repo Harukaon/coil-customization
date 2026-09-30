@@ -69,7 +69,7 @@
   border-bottom: 1px solid hsl(var(--th) var(--ts) var(--l-882));
   color: hsl(var(--th) var(--ts) var(--l-539));
 }
-.mmp-search input {
+input.mmp-search-input {
   min-width: 0;
   height: 100%;
   flex: 1;

@@ -6,6 +6,7 @@ import { PageDialog } from "./PageDialog";
 import { PageFindBar } from "./PageFindBar";
 import { PageSelectPicker } from "./PageSelectPicker";
 import { PageValuePicker } from "./PageValuePicker";
+import { TextArea } from "../../ui/form";
 
 /**
  * 面板里的一张离屏页面：显示它的实时画面，用户在画面上的操作原样送进页面。
@@ -419,7 +420,7 @@ export function LivePageSurface({ tab, scopeId, remoteFrame, onReload, onBack, o
       {fileOver ? <div className="browser-drop-hint" aria-hidden="true"><span>松手，把文件放进网页</span></div> : null}
       {tooltip ? <div ref={tooltipRef} className="coil-tooltip browser-page-tooltip" role="tooltip">{tooltip.text}</div> : null}
       {interactive ? (
-        <textarea
+        <TextArea look="plain"
           ref={proxyRef}
           className="browser-live-proxy"
           style={{ left: proxyAt.x, top: proxyAt.y, fontSize: proxyAt.height }}

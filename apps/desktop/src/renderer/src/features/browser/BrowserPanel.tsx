@@ -7,6 +7,7 @@ import { visibleBrowserTabs } from "../inspector/inspectorTabs";
 import { toastError } from "../../ui/toast";
 import { BrowserDataMenu } from "./BrowserDataMenu";
 import { LivePageSurface } from "./LivePageSurface";
+import { TextField } from "../../ui/form";
 
 /** Fast enough to follow the agent clicking through a page, cheap enough to stream. */
 const REMOTE_FRAME_INTERVAL_MS = 1_200;
@@ -155,7 +156,7 @@ export function BrowserPanel({ active, scopeId, state, onState, onElementPicked 
         <button type="button" aria-label="后退" disabled={!activeTab?.canGoBack} onClick={() => apply(window.coilcoil.browserBack(scopeId))}><ArrowLeft size={13} /></button>
         <button type="button" aria-label="前进" disabled={!activeTab?.canGoForward} onClick={() => apply(window.coilcoil.browserForward(scopeId))}><ArrowRight size={13} /></button>
         <button type="button" aria-label="刷新网页" disabled={!activeTab} onClick={() => apply(window.coilcoil.reloadBrowser(scopeId))}><RotateCw size={12} /></button>
-        <input ref={addressRef} aria-label="网页地址" value={address} placeholder="输入网址或搜索内容" spellCheck={false} onChange={(event) => setAddress(event.target.value)} />
+        <TextField look="plain" className="browser-toolbar-input" ref={addressRef} aria-label="网页地址" value={address} placeholder="输入网址或搜索内容" spellCheck={false} onChange={(event) => setAddress(event.target.value)} />
         {remote ? null : (
           <button
             className={`browser-element-picker ${picking ? "active" : ""}`}

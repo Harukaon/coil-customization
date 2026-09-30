@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { RemoteAccessInput, RemoteAccessState, RemoteTunnelMode } from "../../../../shared/desktop-api";
 import { toastError, toastSuccess } from "../../ui/toast";
 import { platformComputerLabel, rendererPlatform } from "../../platform";
+import { Checkbox, Field, TextArea, TextField } from "../../ui/form";
 
 const TUNNEL_MODES: { id: RemoteTunnelMode; name: string; summary: string; available: boolean }[] = [
   {
@@ -206,7 +207,7 @@ export function RemoteSettings(): React.JSX.Element {
         ) : null}
 
         <form
-          className="remote-form"
+          className="ui-form remote-form"
           onSubmit={(event) => {
             event.preventDefault();
             void save(
@@ -217,18 +218,18 @@ export function RemoteSettings(): React.JSX.Element {
             );
           }}
         >
-          <label>
+          <Field>
             本机监听端口
-            <input value={port} inputMode="numeric" onChange={(event) => setPort(event.target.value)} placeholder="7788" />
-          </label>
+            <TextField value={port} inputMode="numeric" onChange={(event) => setPort(event.target.value)} placeholder="7788" />
+          </Field>
           {mode.id === "reverse-proxy" ? (
-            <label>
+            <Field>
               手机访问地址
-              <input value={publicUrl} onChange={(event) => setPublicUrl(event.target.value)} placeholder="https://coil.example.com" />
+              <TextField value={publicUrl} onChange={(event) => setPublicUrl(event.target.value)} placeholder="https://coil.example.com" />
               <small className="remote-field-hint">你在服务器上配好的那个域名。只用来显示在上面方便复制，不影响监听。</small>
-            </label>
+            </Field>
           ) : null}
-          <footer>
+          <footer className="ui-form-footer">
             <span>改端口会断开当前连接的设备，需要在手机上刷新。</span>
             <button className="remote-action primary" type="submit" disabled={saving}>保存</button>
           </footer>
@@ -240,7 +241,7 @@ export function RemoteSettings(): React.JSX.Element {
         <p className="remote-lead">
           自己记东西的地方：隧道命令、域名、服务器上改过什么。内容只存在这台 {hostLabel} 上，跟着远程设置一起保存，谁都不会读它。
         </p>
-        <textarea
+        <TextArea
           className="remote-notes"
           value={notes}
           spellCheck={false}
@@ -263,7 +264,7 @@ export function RemoteSettings(): React.JSX.Element {
           配对码用过一次就失效，适合站在 {hostLabel} 前面配对。账号密码则可以随时随地登录，换手机、清了浏览器数据都不用再回到 {hostLabel} 上看码。两种方式都能用。
         </p>
         <form
-          className="remote-form"
+          className="ui-form remote-form"
           onSubmit={(event) => {
             event.preventDefault();
             void window.coilcoil.setRemoteAccount(username, password)
@@ -271,15 +272,15 @@ export function RemoteSettings(): React.JSX.Element {
               .catch((caught: unknown) => toastError(caught instanceof Error ? caught.message : String(caught)));
           }}
         >
-          <label>
+          <Field>
             用户名
-            <input value={username} autoComplete="username" onChange={(event) => setUsername(event.target.value)} />
-          </label>
-          <label>
+            <TextField value={username} autoComplete="username" onChange={(event) => setUsername(event.target.value)} />
+          </Field>
+          <Field>
             密码
-            <input value={password} type="password" autoComplete="new-password" placeholder={state.username ? "留空则不修改现有密码" : "设置一个密码"} onChange={(event) => setPassword(event.target.value)} />
-          </label>
-          <footer>
+            <TextField value={password} type="password" autoComplete="new-password" placeholder={state.username ? "留空则不修改现有密码" : "设置一个密码"} onChange={(event) => setPassword(event.target.value)} />
+          </Field>
+          <footer className="ui-form-footer">
             <span>{state.username ? `当前账号：${state.username}。清空用户名并保存即可停用。` : "尚未设置账号，目前只能用配对码登录。"}</span>
             <button className="remote-action primary" type="submit" disabled={saving}>保存</button>
           </footer>
@@ -291,9 +292,8 @@ export function RemoteSettings(): React.JSX.Element {
         <p className="remote-lead">
           开启后，来自你自己的 Tailscale 私有网络或局域网的设备直接进入，不再要求登录。
         </p>
-        <label className="remote-check">
-          <input
-            type="checkbox"
+        <Field className="remote-check">
+          <Checkbox look="plain" className="remote-check-input"
             checked={state.trustLocalNetwork}
             disabled={saving}
             onChange={(event) => void save({ trustLocalNetwork: event.target.checked })}
@@ -305,7 +305,7 @@ export function RemoteSettings(): React.JSX.Element {
               那种连接在本机看来都来自本地回环，一旦信任就等于对整个公网敞开，所以回环永远要登录。
             </small>
           </span>
-        </label>
+        </Field>
       </section>
 
       <section className="remote-section">
@@ -313,9 +313,8 @@ export function RemoteSettings(): React.JSX.Element {
         <p className="remote-lead">
           {hostLabel} 睡着了就没人回应手机。开启后 CoilCoil 会声明系统不得进入闲置休眠——系统不需要额外授权，屏幕仍然可以照常息屏。
         </p>
-        <label className="remote-check">
-          <input
-            type="checkbox"
+        <Field className="remote-check">
+          <Checkbox look="plain" className="remote-check-input"
             checked={state.keepAwake}
             disabled={saving}
             onChange={(event) => void save({ keepAwake: event.target.checked })}
@@ -327,7 +326,7 @@ export function RemoteSettings(): React.JSX.Element {
               合盖仍然会睡——那是硬件行为，任何软件都改不了。要合盖继续跑，得接电源并外接显示器，或在系统设置里关掉合盖休眠。
             </small>
           </span>
-        </label>
+        </Field>
       </section>
 
       <section className="remote-section">

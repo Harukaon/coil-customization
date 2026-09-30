@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { TextField } from "../../ui/form";
 
 /**
  * 页面内查找（⌘F / Ctrl+F）：面板右上角一条小栏，和浏览器自带的查找一样用。
@@ -29,7 +30,7 @@ export function PageFindBar({ result, onFind, onClose }: {
   const count = !text ? "" : !result ? "…" : result.matches === 0 ? "无结果" : `${result.active}/${result.matches}`;
   return (
     <div className="browser-find-bar" role="search" onMouseDown={(event) => event.stopPropagation()}>
-      <input
+      <TextField look="plain" className="browser-find-input"
         ref={inputRef}
         aria-label="在网页中查找"
         placeholder="在网页中查找"

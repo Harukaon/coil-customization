@@ -2,6 +2,7 @@ import { LoaderCircle, RefreshCw, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { DiscoveredMcpServer, McpConfigurationSnapshot, McpDiscoveryResult } from "@coilcoil/runtime-protocol";
 import { toastError, toastSuccess } from "../../ui/toast";
+import { Checkbox } from "../../ui/form";
 
 /**
  * 「发现 MCP」弹窗：先看见机器上别的工具都配了什么，再自己勾几个导进来。
@@ -125,8 +126,7 @@ export function McpDiscoveryDialog({
               const key = serverKey(server);
               return (
                 <label className={`mcp-discovery-row${server.alreadyPresent ? " present" : ""}`} key={key}>
-                  <input
-                    type="checkbox"
+                  <Checkbox look="plain"
                     checked={picked.has(key)}
                     disabled={server.alreadyPresent || importing}
                     onChange={() => toggle(server)}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { BrowserPageDialog } from "../../../../shared/desktop-api";
+import { TextField } from "../../ui/form";
 
 /**
  * 网页自己弹的 alert / confirm / prompt：一张卡片盖在这张页面的画面上，只挡这张页面。
@@ -41,7 +42,7 @@ export function PageDialog({ dialog, onReply }: {
       <h2 className="coil-modal-title">{title}</h2>
       {dialog.message ? <p className="coil-modal-description">{dialog.message}</p> : null}
       {dialog.type === "prompt" ? (
-        <input
+        <TextField look="plain"
           className="browser-page-dialog-input"
           aria-label="回答网页的问题"
           value={text}

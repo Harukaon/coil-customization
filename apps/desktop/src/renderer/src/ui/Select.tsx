@@ -1,6 +1,7 @@
 import * as Popover from "@radix-ui/react-popover";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { TextField } from "./form";
 
 export interface SelectOption {
   value: string;
@@ -134,7 +135,7 @@ export function Select({
           {searchable ? (
             <div className="coil-select-search">
               <Search size={14} aria-hidden="true" />
-              <input ref={searchRef} value={query} aria-label={`搜索${ariaLabel}`} placeholder="搜索…" onChange={(event) => setQuery(event.target.value)} />
+              <TextField look="plain" className="coil-select-search-input" ref={searchRef} value={query} aria-label={`搜索${ariaLabel}`} placeholder="搜索…" onChange={(event) => setQuery(event.target.value)} />
             </div>
           ) : null}
           <div

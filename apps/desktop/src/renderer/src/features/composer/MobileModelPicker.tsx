@@ -2,6 +2,7 @@ import { Check, ChevronLeft, ChevronRight, Search, Settings, X } from "lucide-re
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ModelOption, RuntimeConfiguration, SessionSnapshot, ThinkingLevel } from "@coilcoil/runtime-protocol";
+import { TextField } from "../../ui/form";
 
 /**
  * The phone's model picker, written for the phone.
@@ -102,7 +103,7 @@ export function MobileModelPicker({
           <>
             <div className="mmp-search">
               <Search size={15} />
-              <input
+              <TextField look="plain" className="mmp-search-input"
                 value={search}
                 placeholder="搜索模型名称或 ID"
                 spellCheck={false}

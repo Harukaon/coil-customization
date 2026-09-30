@@ -8,6 +8,7 @@ import { beginEdit, editAvailability, hasExternalChange, isDirty, rebaseEdit, ty
 import { htmlZoomFrameStyle, stepHtmlZoom } from "./htmlZoom";
 import { copyPath, revealLabel, revealPath } from "./pathActions";
 import "./preview.css";
+import { TextArea } from "../../ui/form";
 
 export function FilePreviewPane({ preview, root, loading, error, onClose, onDirtyChange }: {
   preview?: FilePreviewDocument;
@@ -147,7 +148,7 @@ export function FilePreviewPane({ preview, root, loading, error, onClose, onDirt
         {loading ? <div className="preview-placeholder"><LoaderCircle className="spin" size={16} /><span>正在打开文件…</span></div> : null}
         {!loading && error ? <div className="preview-placeholder error"><FileText size={16} /><span>{error}</span></div> : null}
         {session ? (
-          <textarea
+          <TextArea look="plain"
             className="text-editor"
             aria-label={`编辑 ${preview?.name ?? "文件"}`}
             spellCheck={false}

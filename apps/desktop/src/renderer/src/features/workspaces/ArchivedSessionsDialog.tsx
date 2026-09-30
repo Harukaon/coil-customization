@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectSelection, SessionSummary } from "@coilcoil/runtime-protocol";
 import { Modal } from "../../ui/dialog";
 import { filterArchivedSessionGroups, initialArchiveTarget, pendingArchiveTargets } from "./archiveSessions";
+import { TextField } from "../../ui/form";
 
 function archivedTime(value: string | undefined): string {
   if (!value) return "";
@@ -113,7 +114,7 @@ export function ArchivedSessionsDialog({
             </div>
             <span>{loading ? <LoaderCircle className="spin" size={14} /> : null}<button className="icon-button" type="button" aria-label="关闭归档会话" onClick={close}><X size={15} /></button></span>
           </header>
-          <label className="archive-search"><Search size={14} /><input autoFocus value={query} placeholder="搜索归档会话标题（会读取全部项目）" onChange={(event) => setQuery(event.target.value)} /></label>
+          <label className="archive-search"><Search size={14} /><TextField look="plain" className="archive-search-input" autoFocus value={query} placeholder="搜索归档会话标题（会读取全部项目）" onChange={(event) => setQuery(event.target.value)} /></label>
           <div className="archive-groups">
             {groups.map(({ project, sessions, hidden, pending }) => (
               <section key={project.path}>
