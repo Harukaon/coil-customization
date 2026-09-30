@@ -73,9 +73,11 @@ export abstract class RuntimeProviderCore extends RuntimeBase {
       .sort();
     const configuredSet = new Set(configuredProviders);
     const runtimeOptions = this.readModelRuntimeOptions();
+    const restricted = this.restrictedCatalogs();
     const models: ModelOption[] = modelRuntime
       .getModels()
       .filter((model) => !disabledProviders.has(model.provider))
+      .filter((model) => restricted.get(model.provider)?.has(model.id) ?? true)
       .map((model) => ({
         provider: model.provider,
         providerName: providers.get(model.provider) ?? model.provider,
@@ -251,6 +253,25 @@ export abstract class RuntimeProviderCore extends RuntimeBase {
         .filter(([, provider]) => provider.disabled === true)
         .map(([id]) => id),
     );
+  }
+
+  /**
+   * Providers whose catalog the user replaced ("自定义目录"): only the models they kept.
+   *
+   * Pi treats a `models` list in models.json as an upsert on top of a built-in
+   * provider, so the built-in models were still there after the user had asked for
+   * their own list. The picker and every list built from this configuration go
+   * through here, so a built-in provider (Anthropic, Codex, ...) shows exactly the
+   * list the user saved, the same as a custom one always did.
+   */
+  protected restrictedCatalogs(): Map<string, Set<string>> {
+    const restricted = new Map<string, Set<string>>();
+    for (const [id, provider] of Object.entries(this.readPrivateModelsConfiguration().providers)) {
+      if (!Array.isArray(provider.models) || provider.models.length === 0) continue;
+      const kept = provider.models.flatMap((model) => (isRecord(model) && typeof model.id === "string" ? [model.id] : []));
+      if (kept.length) restricted.set(id, new Set(kept));
+    }
+    return restricted;
   }
 
   protected modelsConfigurationPath(): string {
