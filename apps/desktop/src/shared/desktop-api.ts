@@ -334,58 +334,6 @@ export interface ImportableProfile {
   fix?: "full-disk-access";
 }
 
-/**
- * 工作区自带的任务面板。
- *
- * 六个状态加一个动作，是用户定的流转：
- *   待办池 pool   —— 只是记下来的想法，AI 不碰它
- *   待处理 ready  —— AI 的队列，「开始」只从这里挑
- *   进行中 doing
- *   待验收 review —— 等用户看。一时验不了的可以标 deferred，留在这一列但不排队
- *   待回复 reply  —— AI 卡住了等用户拿主意；用户一回复就自动回到待处理
- *   完成   done   —— 默认不显示，要看得自己打开
- * 「打回重做」不是一列，是一个动作：把这条退回待处理，并把理由记进时间线。
- */
-export type IssueStatus = "pool" | "ready" | "doing" | "review" | "reply" | "done";
-
-export type IssuePriority = "high" | "medium" | "low";
-
-/**
- * 时间线上的一条。
- *
- * 用户的话、AI 的话、状态变动、提交，全都是同一种东西，按时间排成一条线——
- * 用户明确要求过不要「AI 一摞、我一摞」并列着看。
- */
-export interface IssueEvent {
-  at: string;
-  by: "user" | "agent";
-  kind: "comment" | "note" | "status" | "commit";
-  text: string;
-  /** kind 为 status 时：移到了哪一档。 */
-  status?: IssueStatus;
-  /** kind 为 commit 时：提交号。 */
-  ref?: string;
-  /** 随这条一起贴的图。和聊天里的附图是同一种东西，会一并发给 agent。 */
-  images?: PromptImage[];
-}
-
-export interface Issue {
-  id: string;
-  title: string;
-  body: string;
-  status: IssueStatus;
-  priority: IssuePriority;
-  createdAt: string;
-  updatedAt: string;
-  events: IssueEvent[];
-  /** 子 Issue 挂在父的 id 下。 */
-  parentId?: string;
-  /** 待验收里被标成「以后再验收」的：留在这一列，但不进批阅队列。 */
-  deferred?: boolean;
-  /** 提这条时贴的图：截图往往比一段描述说得清，做的时候会一并发给 agent。 */
-  images?: PromptImage[];
-}
-
 export interface ImportBrowserCookiesInput {
   browser: ImportableBrowserId;
   profile: string;
@@ -510,10 +458,6 @@ export interface CoilCoilDesktopApi {
   growWindowWidth(byPixels: number): Promise<void>;
   /** 同步窗口底色（CSS 颜色字面量），避免暗色主题下窗口画布仍是浅色。 */
   setWindowBackground(color: string): Promise<void>;
-  /** 这个工作区的任务面板（存在 userData 里，不写进用户的仓库）。 */
-  listIssues(cwd: string): Promise<Issue[]>;
-  /** 覆盖这个工作区的面板；返回真正落盘的那一份。 */
-  saveIssues(cwd: string, issues: Issue[]): Promise<Issue[]>;
   /** 挂载的文件夹清单（存在 userData 里，开发版和安装版共用一份）。 */
   mountedProjects(): Promise<Array<{ name: string; path: string; kind: "workspace" }>>;
   /** 覆盖磁盘上的挂载清单；返回真正落盘的那一份。 */

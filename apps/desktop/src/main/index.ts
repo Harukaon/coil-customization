@@ -42,7 +42,6 @@ import { BROWSER_PARTITION } from "./browser-page-policy";
 import { configureBrowserIdentity } from "./browser-user-agent";
 import { readMountedProjects, writeMountedProjects } from "./mounted-projects";
 import { checkWorkspaceName, memoryBucketName, rememberedMemoryNames, workspaceNamePrompt } from "./workspace-name-guard";
-import { issuesFileFor, readIssues, writeIssues } from "./workspace-issues";
 import { proxyEnvironment, refreshProxyEnvironment } from "./system-proxy";
 import { browserDataStats, clearBrowserData, importBrowserCookies, listImportableProfiles, savedLogins } from "./browser-import";
 import { saveProjectFile } from "./file-edit";
@@ -90,17 +89,10 @@ const WINDOW_OPACITY_CHANNEL = "window:opacity";
 const BADGE_COUNT_CHANNEL = "app:badge-count";
 const MOUNTED_PROJECTS_CHANNEL = "projects:mounted";
 const MOUNTED_PROJECTS_SET_CHANNEL = "projects:mounted:set";
-const ISSUES_LIST_CHANNEL = "issues:list";
-const ISSUES_SAVE_CHANNEL = "issues:save";
 
 /** 挂载的文件夹清单：和 window.json 一样，userData 下自己一个小文件。 */
 function mountedProjectsFile(): string {
   return join(app.getPath("userData"), "mounted-projects.json");
-}
-
-/** 每个工作区的任务面板一份，都在 userData/issues 下。 */
-function issuesFile(cwd: string): string {
-  return issuesFileFor(app.getPath("userData"), cwd);
 }
 
 /** 透明度存在 userData 下的单独一个小文件里，和 remote.json 一样。 */
@@ -645,16 +637,10 @@ function remoteController(): RemoteAccessController {
         } else shell.showItemInFolder(target);
         return true;
       }
-      // 手机上的浏览器存储是另一个来源的，挂载的文件夹和任务面板都只能问这台机器
+      // 手机上的浏览器存储是另一个来源的，挂载的文件夹清单只能问这台机器
       // 要——同一份文件，桌面和手机看到的是同一份清单。
       if (channel === MOUNTED_PROJECTS_CHANNEL) return readMountedProjects(mountedProjectsFile());
       if (channel === MOUNTED_PROJECTS_SET_CHANNEL) return writeMountedProjects(mountedProjectsFile(), args[0]);
-      if (channel === ISSUES_LIST_CHANNEL) {
-        return typeof args[0] === "string" && args[0] ? readIssues(issuesFile(args[0])) : [];
-      }
-      if (channel === ISSUES_SAVE_CHANNEL) {
-        return typeof args[0] === "string" && args[0] ? writeIssues(issuesFile(args[0]), args[1]) : [];
-      }
       // 文件预览：内容是这台机器读出来直接放进返回值里的，手机拿到的和桌面拿到的
       // 是同一份文档，所以图片、PDF、Markdown 在手机上照样看得到。
       if (channel === PREVIEW_OPEN_CHANNEL) return openFilePreview(remotePreviewOwner, args[0] as OpenFilePreviewInput, safePreviewPath);
@@ -1164,10 +1150,6 @@ app.whenReady().then(async () => {
   ipcMain.handle(MOUNTED_PROJECTS_CHANNEL, () => readMountedProjects(mountedProjectsFile()));
   ipcMain.handle(MOUNTED_PROJECTS_SET_CHANNEL, (_event, projects: unknown) =>
     writeMountedProjects(mountedProjectsFile(), projects));
-  ipcMain.handle(ISSUES_LIST_CHANNEL, (_event, cwd: unknown) =>
-    typeof cwd === "string" && cwd ? readIssues(issuesFile(cwd)) : []);
-  ipcMain.handle(ISSUES_SAVE_CHANNEL, (_event, cwd: unknown, issues: unknown) =>
-    typeof cwd === "string" && cwd ? writeIssues(issuesFile(cwd), issues) : []);
   ipcMain.handle(BADGE_COUNT_CHANNEL, (_event, count: number): void => {
     const unread = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
     // 角标的红底白字是系统画的，跟界面里那两个未读点无关：用户要的是界面里别用

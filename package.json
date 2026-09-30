@@ -36,7 +36,6 @@
     "smoke:live": "npm run build && node scripts/runtime-smoke.mjs --live",
     "smoke:concurrency": "npm run build --workspace @coilcoil/desktop && node scripts/runtime-concurrency-smoke.mjs",
     "smoke:concurrency:live": "npm run build --workspace @coilcoil/desktop && node scripts/runtime-concurrency-smoke.mjs --live",
-    "smoke:issue": "npm run build --workspace @coilcoil/desktop && node scripts/issue-run-smoke.mjs",
     "smoke:desktop": "node scripts/desktop-smoke.mjs",
     "e2e": "node scripts/e2e/run.mjs",
     "smoke:desktop:composer": "node scripts/desktop-composer-smoke.mjs",

@@ -1564,24 +1564,6 @@ export type RuntimeCommand =
   | { type: "get_session_naming_configuration" }
   | { type: "get_summarization_model_configuration" }
   | { type: "save_summarization_model_configuration"; input: SummarizationModelConfigurationInput }
-  /**
-   * 跑任务面板上的一条任务。
-   *
-   * 不带 runtimeId：它不属于任何一个会话，服务端会为它单独起一个运行时，用完就扔。
-   */
-  | {
-    type: "run_issue";
-    cwd: string;
-    issueId: string;
-    /** 第一次跑这条任务时说的话。 */
-    prompt: string;
-    /** 再跑一次时说的话：同一条对话接着说，所以只说新增的那几句。 */
-    followUp?: string;
-    /** 跟 followUp 配套：只有新贴的图，上一轮那些它自己的对话里还留着。 */
-    followUpImages?: PromptImage[];
-    images?: PromptImage[];
-    maxTurns?: number;
-  }
   | { type: "save_subagent_configuration"; input: SubagentConfigurationInput }
   | { type: "save_session_naming_configuration"; input: SessionNamingConfigurationInput }
   | { type: "get_skill_configuration"; cwd?: string }

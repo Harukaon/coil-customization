@@ -57,7 +57,7 @@ import {
 import { OnboardingScreen } from "./features/onboarding/OnboardingScreen";
 import { useOnboarding } from "./features/onboarding/useOnboarding";
 
-type WorkspaceSurface = "conversation" | "skills" | "memory" | "issues";
+type WorkspaceSurface = "conversation" | "skills" | "memory";
 
 export default function App(): React.JSX.Element {
   const [projects, setProjects] = useState<ProjectSelection[]>([]);

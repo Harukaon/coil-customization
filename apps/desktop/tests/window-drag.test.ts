@@ -48,7 +48,6 @@ const DRAG_BAR_HOSTS = [
   "inspector-header",
   "skills-workspace-header",
   "memory-workspace-header",
-  "issue-board-header",
   "sidebar-drag",
   "app-sidebar-control-bar",
   "conversation-inspector-control-bar",
@@ -82,7 +81,6 @@ test("窗口顶栏拖动层固定覆盖整个窗口，不跟随三栏移动", ()
 test("宿主标题栏都给拖动层建立了定位上下文", () => {
   assert.match(declarations(".window-drag-bar"), /position:\s*relative/);
   for (const host of DRAG_BAR_HOSTS) {
-    if (host === "issue-board-header") continue; // 它的样式在 features/issues/issues.css 里。
     assert.match(declarations(`.${host}`), /position:\s*(?:relative|absolute)/, `.${host} 需要定位上下文`);
   }
 });
@@ -143,7 +141,6 @@ test("所有工作区共用 AppView 的左侧栏开关", () => {
   const workspaceFiles = [
     resolve(rendererRoot, "features/settings/SkillsWorkspace.tsx"),
     resolve(rendererRoot, "features/memory/MemoryWorkspace.tsx"),
-    resolve(rendererRoot, "features/issues/IssueBoard.tsx"),
   ];
   for (const file of workspaceFiles) {
     const source = readFileSync(file, "utf8");
@@ -162,7 +159,6 @@ test("窗口按钮压在右上角，标题栏右侧要给它让位", () => {
   for (const selector of [
     ".app-shell > .skills-workspace > .skills-workspace-header",
     ".app-shell > .memory-workspace > .memory-workspace-header",
-    ".app-shell > .issue-board > .issue-board-header",
   ]) {
     assert.match(declarationsOfList(selector), clearance, `${selector} 要给窗口按钮让位`);
   }
@@ -212,11 +208,11 @@ test("自绘窗口按钮和右栏头部同高同中线", () => {
   assert.match(declarations(".window-controls"), /height:\s*44px/, ".window-controls 要和右栏头部同高");
   assert.match(declarations(".inspector-pane"), /grid-template-rows:\s*44px/, "右栏头部第一行是 44px");
   assert.equal(pixels(".conversation-inspector-control", "height"), 44);
-  // 图标同样要够大：原生那套 10px 线框配 15-17px 的应用图标明显小一圈。
+  // 图标用 Windows 原生的 10px：13px 时在 Windows 上明显偏大（2026-09 用户反馈）。
   const controls = readFileSync(resolve(rendererRoot, "ui/WindowControls.tsx"), "utf8");
   const glyphs = controls.match(/<svg width="\d+" height="\d+"/g) ?? [];
   assert.equal(glyphs.length, 4, "最小化 / 最大化 / 还原 / 关闭共 4 个图标");
-  for (const glyph of glyphs) assert.match(glyph, /width="13" height="13"/, `窗口按钮图标大小应统一：${glyph}`);
+  for (const glyph of glyphs) assert.match(glyph, /width="10" height="10"/, `窗口按钮图标大小应统一：${glyph}`);
 });
 
 test("标题栏里的选择器不能用 :first-child——拖动层永远排在第一个", () => {

@@ -182,16 +182,6 @@ export function resolveWorkflowDirectory(explicit?: string): string {
 }
 
 /**
- * 任务面板那条后台运行专用的扩展。
- *
- * 它故意不在 workflow 的 pi.extensions 清单里——普通对话不该看到 issue_reply /
- * issue_ask 这两个工具——所以路径在这里单独给出来，由起那条运行的人挂上去。
- */
-export function issueAgentExtensionPath(workflowDirectory?: string): string {
-  return join(resolveWorkflowDirectory(workflowDirectory), "extensions", "issue-agent.ts");
-}
-
-/**
  * Skills ship scripts that other programs (python, node, a shell) have to open, and
  * those cannot see inside app.asar. The desktop build unpacks the skills folder
  * next to the archive (asarUnpack); point at that copy when it exists.

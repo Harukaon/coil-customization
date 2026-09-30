@@ -36,7 +36,6 @@ const RADIUS_SHEETS = [
   "features/settings/settings.css",
   "features/composer/mobile-model-picker.css",
   "features/memory/memory.css",
-  "features/issues/issues.css",
   "features/files/preview.css",
   "features/terminal/terminal.css",
 ];

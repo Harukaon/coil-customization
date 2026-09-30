@@ -13,7 +13,6 @@ import {
   FolderOpen,
   GitFork,
   Hash,
-  ListChecks,
   MessageSquarePlus,
   MoreHorizontal,
   Pencil,
@@ -252,8 +251,6 @@ export function WorkspaceSidebar({
   onMoveConversation,
   onReorderProjects,
   onRestoreSessions,
-  boardOpen,
-  onOpenBoard,
   skillsOpen,
   onOpenSkills,
   memoryOpen,
@@ -284,9 +281,6 @@ export function WorkspaceSidebar({
   onMoveConversation: (project: ProjectSelection, session: SessionSummary, target: ProjectSelection) => void;
   onReorderProjects: (fromPath: string, toPath: string) => void;
   onRestoreSessions: (project: ProjectSelection, sessions: SessionSummary[]) => void;
-  /** 任务面板是不是正开着——开着的那个工作区，行上的按钮要亮起来。 */
-  boardOpen: boolean;
-  onOpenBoard: (owner: ProjectSelection) => void;
   skillsOpen: boolean;
   onOpenSkills: () => void;
   memoryOpen: boolean;
@@ -507,16 +501,6 @@ export function WorkspaceSidebar({
                   ) : null}
                 </button>
                 <span className="project-row-actions">
-                  {/* 任务面板在新建对话的左边：这两个是「在这个工作区里做事」的两个
-                      入口，挨在一起。放设置页里就找不到了——它属于这个文件夹。 */}
-                  <button
-                    className={`project-action ${boardOpen && project.path === activeProject?.path ? "active" : ""}`}
-                    type="button"
-                    aria-label={`打开 ${project.name} 的任务面板`}
-                    onClick={() => onOpenBoard(project)}
-                  >
-                    <ListChecks size={14} />
-                  </button>
                   <button className="project-action" type="button" aria-label={`在 ${project.name} 中新建对话`} onClick={() => onNewConversation(project)}><Plus size={14} /></button>
                 </span>
               </div>

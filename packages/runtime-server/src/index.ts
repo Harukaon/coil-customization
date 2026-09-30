@@ -22,7 +22,6 @@ import {
   levelFromEnvironment,
   processStartupData,
 } from "@coilcoil/diagnostics";
-import { runIssueTask } from "./issue-run.js";
 import { selectWorkspaceSessionPath } from "./workspace-session.js";
 
 type WireSink = (message: RuntimeWireMessage) => void;
@@ -384,14 +383,6 @@ export class RuntimeServer {
     if (command.type === "git") return runGitAction(command.cwd, command.action);
     if (command.type === "open_session") return this.openSession(command.cwd, command.sessionPath);
     if (command.type === "open_workspace") return this.openWorkspace(command.cwd);
-    // 任务面板那条运行不属于任何会话，也不该借用某个会话的运行时：它自己起、自己
-    // 收，跑完什么都不留在工作区里。
-    if (command.type === "run_issue") {
-      return runIssueTask(this.options, command, {
-        createRuntime: this.createRuntime,
-        modelRuntimePromise: this.runtime.sharedModelRuntime(),
-      });
-    }
     if (command.type === "move_session") {
       // Relocating rewrites the session header on disk, so the live runtime has
       // to let go of the file first; a still-open SessionManager would append
@@ -457,7 +448,7 @@ export class RuntimeServer {
     }
   }
 
-  private dispatchTo(runtime: CoilCoilRuntime, command: Exclude<RuntimeCommand, { type: "create_session" } | { type: "open_session" } | { type: "open_workspace" } | { type: "run_issue" }>): Promise<unknown> {
+  private dispatchTo(runtime: CoilCoilRuntime, command: Exclude<RuntimeCommand, { type: "create_session" } | { type: "open_session" } | { type: "open_workspace" }>): Promise<unknown> {
     switch (command.type) {
       case "bootstrap":
         return runtime.initialize();

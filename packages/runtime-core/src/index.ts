@@ -10,7 +10,6 @@ export {
 export { installSetupRpc, setupRpcReplyChannel } from "./runtime-setup-rpc.js";
 export type { SetupRpcHost, SetupRpcRequest } from "./runtime-setup-rpc.js";
 export type { McpAdapterEffectiveConfig } from "./browser-mcp.js";
-export { issueAgentExtensionPath } from "./project-helpers.js";
 export type { CoilCoilRuntimeOptions } from "./runtime-state.js";
 export { CoilCoilRuntime } from "./runtime.js";
 export { gitStatus, parseCommitRefs, parseGitLog, parseGitStatus, parseNameStatus, runGitAction } from "./git-workspace.js";

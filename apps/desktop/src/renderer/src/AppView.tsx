@@ -26,8 +26,6 @@ import type {
 import type { BrowserElementSelection } from "../../shared/desktop-api";
 import { useInAppBrowserLinks } from "./features/browser/useInAppBrowserLinks";
 import { ConversationPane } from "./features/conversation/ConversationPane";
-import { IssueBoard } from "./features/issues/IssueBoard";
-import { requestIssueRun, useIssueBoard } from "./features/issues/useIssueBoard";
 import { MemoryWorkspace } from "./features/memory/MemoryWorkspace";
 import { SkillsWorkspace } from "./features/settings/SkillsWorkspace";
 import { WorkspaceInspector } from "./features/inspector/WorkspaceInspector";
@@ -41,7 +39,7 @@ import type { usePanelLayout } from "./hooks/usePanelLayout";
 import { toastError } from "./ui/toast";
 import { WindowDragBar } from "./ui/WindowDragBar";
 
-type WorkspaceSurface = "conversation" | "skills" | "memory" | "issues";
+type WorkspaceSurface = "conversation" | "skills" | "memory";
 type ConversationProps = ComponentProps<typeof ConversationPane>;
 
 
@@ -168,10 +166,6 @@ export function AppView({ controller }: { controller: AppViewController }): Reac
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  /* 任务面板。任务跑在后台自己的运行时里，和这一层的对话没有任何关系——它不新建
-     对话、不发消息、也不看哪个对话跑完没有，所以这里只剩工作区路径这一个输入。 */
-  const board = useIssueBoard({ cwd: project?.path, runIssue: requestIssueRun });
-
   useInAppBrowserLinks({
     scopeId: snapshot?.runtimeId ?? project?.path ?? "default",
     openBrowser: inspector.openBrowserTab,
@@ -214,11 +208,6 @@ export function AppView({ controller }: { controller: AppViewController }): Reac
         onMoveConversation={(owner, session, target) => { void moveConversation(owner, session, target); }}
         onReorderProjects={reorderProjects}
         onRestoreSessions={(owner, sessions) => setSessionsByProject((current) => ({ ...current, [owner.path]: sessions }))}
-        boardOpen={workspaceSurface === "issues"}
-        /* 切工作区要排在设面板之前：startNewConversation 内部会把 surface 拨回
-           "conversation"，先设 "issues" 会被它盖掉——于是点另一个工作区的任务按钮，
-           第一下只是开了个新对话，第二下（这时已经是当前工作区、不再切）才进得去。 */
-        onOpenBoard={(owner) => { setModelMenuOpen(false); if (owner.path !== project?.path) startNewConversation(owner); setWorkspaceSurface("issues"); }}
         skillsOpen={workspaceSurface === "skills"}
         onOpenSkills={() => { setModelMenuOpen(false); setWorkspaceSurface("skills"); }}
         memoryOpen={workspaceSurface === "memory"}
@@ -229,19 +218,7 @@ export function AppView({ controller }: { controller: AppViewController }): Reac
       />
       {leftOpen ? <div className="panel-resizer left-resizer" role="separator" aria-label="调整左侧栏宽度" aria-orientation="vertical" onPointerDown={(event) => beginResize("left", event)} /> : null}
 
-      {workspaceSurface === "issues" ? (
-        <IssueBoard
-          workspaceName={project?.name}
-          issues={board.issues}
-          loading={board.loading}
-          run={board.run}
-          layoutPending={workspaceLayoutPending}
-          onClose={() => { shouldAutoScrollRef.current = true; setWorkspaceSurface("conversation"); }}
-          onChange={board.update}
-          onStart={board.start}
-          onStop={board.stop}
-        />
-      ) : workspaceSurface === "skills" ? (
+      {workspaceSurface === "skills" ? (
         <SkillsWorkspace
           runtimeId={snapshot?.runtimeId}
           cwd={project?.path}

@@ -286,15 +286,15 @@ test("clearing the account leaves only the pairing code", async (t) => {
   assert.equal(server.auth.username(), undefined);
 });
 
-test("手机拿得到挂载的文件夹清单和任务面板，而不是只剩一个 Home", () => {
-  // 手机上的 localStorage 属于远程那个来源，永远是空的，所以这两份数据只能问
+test("手机拿得到挂载的文件夹清单，而不是只剩一个 Home", () => {
+  // 手机上的 localStorage 属于远程那个来源，永远是空的，所以这份数据只能问
   // Mac 要。少了这几条通道，手机连上来侧栏里就只有一个 Home——这正是它出过的样子。
-  for (const channel of ["projects:mounted", "projects:mounted:set", "issues:list", "issues:save"]) {
+  for (const channel of ["projects:mounted", "projects:mounted:set"]) {
     assert.ok(REMOTE_INVOKE_CHANNELS.includes(channel as (typeof REMOTE_INVOKE_CHANNELS)[number]),
       `${channel} 不在远程允许的通道里`);
   }
   const script = bridgeScript("darwin");
-  for (const method of ["mountedProjects", "setMountedProjects", "listIssues", "saveIssues"]) {
+  for (const method of ["mountedProjects", "setMountedProjects"]) {
     assert.match(script, new RegExp(`${method}: function`), `远程那半个 bridge 少了 ${method}`);
   }
 });

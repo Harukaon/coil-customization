@@ -46,7 +46,6 @@
   [data-client="remote"] .app-shell > .sidebar,
   [data-client="remote"] .app-shell > .conversation-pane,
   [data-client="remote"] .app-shell > .inspector-pane,
-  [data-client="remote"] .app-shell > .issue-board,
   [data-client="remote"] .app-shell > .skills-workspace,
   [data-client="remote"] .app-shell > .memory-workspace {
     flex: 0 0 100%;
@@ -64,7 +63,6 @@
    * transitions must not fade or slide the deck's three pages. */
   [data-client="remote"] .app-shell,
   [data-client="remote"] .app-shell > .conversation-pane,
-  [data-client="remote"] .app-shell > .issue-board,
   [data-client="remote"] .app-shell > .skills-workspace,
   [data-client="remote"] .app-shell > .memory-workspace,
   [data-client="remote"] .app-shell > .sidebar,
@@ -82,7 +80,6 @@
   [data-client="remote"] .app-shell.left-collapsed > .conversation-pane,
   [data-client="remote"] .app-shell.right-collapsed > .conversation-pane,
   [data-client="remote"] .app-shell.left-collapsed.right-collapsed > .conversation-pane,
-  [data-client="remote"] .app-shell.left-collapsed > .issue-board,
   [data-client="remote"] .app-shell.left-collapsed > .skills-workspace,
   [data-client="remote"] .app-shell.left-collapsed > .memory-workspace {
     width: 100%;
@@ -163,17 +160,6 @@
    * phone that row becomes the grid's min-content width and stretches every
    * header/toolbar past the viewport. Let only the search field absorb the
    * remaining room; the checkbox and view switch keep their usable sizes. */
-  [data-client="remote"] .issue-board-header,
-  [data-client="remote"] .issue-board-toolbar { gap: 8px; padding-right: 14px; padding-left: 14px; }
-  [data-client="remote"] .issue-board-header > div:first-of-type { flex: 1 1 auto; overflow: hidden; }
-  [data-client="remote"] .issue-board-header > div:first-of-type > div { min-width: 0; }
-  [data-client="remote"] .issue-board-header h1,
-  [data-client="remote"] .issue-board-header p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  [data-client="remote"] .issue-board-filters { gap: 8px; padding-right: 14px; padding-left: 14px; }
-  [data-client="remote"] .issue-board-filters input[type="text"] { width: auto; flex: 1 1 auto; }
-  [data-client="remote"] .issue-board-filters label,
-  [data-client="remote"] .issue-view-switch { flex: 0 0 auto; white-space: nowrap; }
-  [data-client="remote"] .issue-view-switch { margin-left: 0; }
 }
 
 @keyframes mobile-sheet-in {

@@ -177,7 +177,6 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-
 }
 /* 工作区页没有右侧 inspector，直接铺到窗口边缘；conversation 才需要为右栏
    预留 inset。 */
-.app-shell.workspace-issues > .issue-board,
 .app-shell.workspace-skills > .skills-workspace,
 .app-shell.workspace-memory > .memory-workspace { right: 0; }
 .app-shell > .sidebar { grid-column: 1; }
@@ -406,49 +405,41 @@ body.resizing-panels .app-shell > .inspector-pane { transition: none; }
    按钮底下点不到。macOS 的红绿灯在左上角，--window-controls-width 为 0。
    设置页的页头同理，那条规则在同目录的 settings.css 里。 */
 .app-shell > .skills-workspace > .skills-workspace-header,
-.app-shell > .memory-workspace > .memory-workspace-header,
-.app-shell > .issue-board > .issue-board-header {
+.app-shell > .memory-workspace > .memory-workspace-header {
   padding-right: calc(26px + var(--window-controls-width));
 }
 
 .app-shell > .skills-workspace > .skills-workspace-header,
-.app-shell > .memory-workspace > .memory-workspace-header,
-.app-shell > .issue-board > .issue-board-header {
+.app-shell > .memory-workspace > .memory-workspace-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   transition: padding-left 220ms cubic-bezier(.22, 1, .36, 1);
 }
 .app-shell > .skills-workspace > .skills-workspace-header > div:first-of-type,
-.app-shell > .memory-workspace > .memory-workspace-header > div:first-of-type,
-.app-shell > .issue-board > .issue-board-header > div:first-of-type {
+.app-shell > .memory-workspace > .memory-workspace-header > div:first-of-type {
   min-width: 0;
   overflow: hidden;
 }
 .app-shell > .skills-workspace > .skills-workspace-header > div:first-of-type > div,
-.app-shell > .memory-workspace > .memory-workspace-header > div:first-of-type > div,
-.app-shell > .issue-board > .issue-board-header > div:first-of-type > div {
+.app-shell > .memory-workspace > .memory-workspace-header > div:first-of-type > div {
   min-width: 0;
   overflow: hidden;
 }
 .app-shell.left-collapsed > .skills-workspace > .skills-workspace-header,
-.app-shell.left-collapsed > .memory-workspace > .memory-workspace-header,
-.app-shell.left-collapsed > .issue-board > .issue-board-header {
+.app-shell.left-collapsed > .memory-workspace > .memory-workspace-header {
   /* Match the shared AppView sidebar toggle: 20px + 30px + 10px on desktop. */
   padding-left: 60px;
 }
 [data-platform="darwin"] .app-shell.left-collapsed > .skills-workspace > .skills-workspace-header,
-[data-platform="darwin"] .app-shell.left-collapsed > .memory-workspace > .memory-workspace-header,
-[data-platform="darwin"] .app-shell.left-collapsed > .issue-board > .issue-board-header {
+[data-platform="darwin"] .app-shell.left-collapsed > .memory-workspace > .memory-workspace-header {
   /* The macOS traffic-light area adds 62px before the toggle. */
   padding-left: 122px;
 }
 .app-shell > .skills-workspace > .skills-workspace-header h1,
 .app-shell > .skills-workspace > .skills-workspace-header p,
 .app-shell > .memory-workspace > .memory-workspace-header h1,
-.app-shell > .memory-workspace > .memory-workspace-header p,
-.app-shell > .issue-board > .issue-board-header h1,
-.app-shell > .issue-board > .issue-board-header p {
+.app-shell > .memory-workspace > .memory-workspace-header p {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

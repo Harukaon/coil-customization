@@ -58,9 +58,6 @@ export interface CoilCoilRuntimeOptions {
   checkpoints?: boolean;
   /**
    * Extra Pi extensions for this runtime only, on top of the bundled workflow.
-   *
-   * The task board's background run uses it to add tools that exist nowhere
-   * else (`issue_reply` / `issue_ask`); a normal conversation must not see them.
    */
   additionalExtensionPaths?: string[];
   onEvent?: EventSink;
