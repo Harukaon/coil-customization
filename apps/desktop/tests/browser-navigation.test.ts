@@ -30,8 +30,9 @@ test("browser navigation keeps file and data URLs without an allowlist", () => {
 test("browser navigation still treats plain text as a search", () => {
   assert.equal(
     normalizeBrowserUrl("测试本地浏览器"),
-    `https://www.google.com/search?q=${encodeURIComponent("测试本地浏览器")}`,
+    `https://cn.bing.com/search?q=${encodeURIComponent("测试本地浏览器")}`,
   );
+  assert.equal(normalizeBrowserUrl("https://www.google.com/search?q=test"), "https://www.google.com/search?q=test");
 });
 
 test("桥垫出来的那张空白页会被 agent 的新标签页接管，不再两张起步", () => {

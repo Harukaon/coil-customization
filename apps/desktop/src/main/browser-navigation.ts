@@ -29,7 +29,7 @@ export function normalizeBrowserUrl(raw: string | undefined): string {
 
   const candidate = value.includes(".") && !value.includes(" ")
     ? `https://${value}`
-    : `https://www.google.com/search?q=${encodeURIComponent(value)}`;
+    : `https://cn.bing.com/search?q=${encodeURIComponent(value)}`;
   return new URL(candidate).toString();
 }
 
