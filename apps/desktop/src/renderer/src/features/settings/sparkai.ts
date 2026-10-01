@@ -15,6 +15,8 @@ export function sparkBaseUrl(): string {
   try { return window.localStorage.getItem("coilcoil.sparkBaseUrl") || SPARK_BASE_URL; } catch { return SPARK_BASE_URL; }
 }
 export const SPARK_API = "openai-completions";
+/** Spark AI models use a consistent default context; users can override it in a custom catalog. */
+export const SPARK_DEFAULT_CONTEXT_WINDOW = 200000;
 
 /**
  * Placeholder catalog. A custom provider must define at least one model, so this
@@ -33,7 +35,7 @@ export function sparkModelFromUpstream(upstream: { id: string; name?: string }):
     reasoning: meta.reasoning ?? false,
     ...(meta.thinkingLevels?.length ? { thinkingLevelMap: thinkingLevelMapFromLevels(meta.thinkingLevels) as ModelProviderModelConfiguration["thinkingLevelMap"] } : {}),
     input: meta.input ?? ["text"],
-    contextWindow: meta.contextWindow ?? 128000,
+    contextWindow: SPARK_DEFAULT_CONTEXT_WINDOW,
     maxTokens: meta.maxTokens ?? 16384,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
   };

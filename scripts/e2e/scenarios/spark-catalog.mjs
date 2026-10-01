@@ -33,7 +33,7 @@ export async function run({ page, ui, check, shot }) {
     // The catalog mode is worked out from the gateway a moment after the page opens.
     await ui.waitFor(async () => (await page.locator(".provider-model-mode").count()) === 1, 15_000);
   };
-  check("首次引导后目录是云端的三个模型", (await ids()) === "spark-a,spark-b,spark-c", await ids());
+  check("首次引导后目录是云端的三个模型，默认上下文均为 200K", (await ids()) === "spark-a,spark-b,spark-c" && (await sparkModels()).every((model) => model.contextWindow === 200000), JSON.stringify(await sparkModels()));
 
   await openSettings();
   check("Spark AI 页面有「启用此服务商」「清除配置」和 API key 一栏，和其他内置服务商一样", (await page.getByText("启用此服务商").count()) === 1 && (await page.getByRole("button", { name: "清除配置" }).count()) === 1 && (await page.getByText(/^API key/).count()) >= 1);
@@ -64,5 +64,5 @@ export async function run({ page, ui, check, shot }) {
   const allBack = await ui.waitFor(async () => (await ids()) === "spark-a,spark-b,spark-c", 15_000);
   check("选回「保留内置」后云端三个模型全部回来", allBack, await ids());
   const restored = await sparkModels();
-  check("选回「保留内置」后上下文长度也回到云端默认，不留自定义的 64000", restored.find((model) => model.id === "spark-a")?.contextWindow !== 64000, JSON.stringify(restored));
+  check("选回「保留内置」后上下文恢复默认 200K", restored.every((model) => model.contextWindow === 200000), JSON.stringify(restored));
 }
