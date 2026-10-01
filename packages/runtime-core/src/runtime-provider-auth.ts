@@ -390,8 +390,10 @@ export abstract class RuntimeProviderAuth extends RuntimeProviderSettings {
       }
     }
 
-    const detail = redactProviderSecret(errors.at(-1) ?? "未知错误", apiKey);
-    throw new Error(`拉取模型失败：已自动尝试有/无 /v1 的地址。最后一次：${detail}`);
+    // Every attempt, not just the last: a gateway's /models without /v1 is often a web page, which
+    // hides the real reason the first (right) address failed.
+    const detail = redactProviderSecret(errors.map((entry) => truncateDetail(entry, 160)).join("；") || "未知错误", apiKey);
+    throw new Error(`拉取模型失败（已依次尝试有/无 /v1 的地址）：${detail}`);
   }
 
   async testProviderConnection(input: TestProviderConnectionInput): Promise<TestProviderConnectionResult> {

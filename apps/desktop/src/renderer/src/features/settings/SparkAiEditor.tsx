@@ -74,37 +74,36 @@ export function SparkAiEditor({ runtimeId, onSaved, onConfiguredChange }: {
           } : undefined,
         },
       }, runtimeId);
-      // 1) Store the key. The catalog is a placeholder (or the previous one) until step 2.
-      let result = await saveProvider(existing?.models.length ? existing.models : SPARK_DEFAULT_MODELS, true);
-      // 2) Ask the gateway which models this key can use and make that the catalog.
-      let refreshed = false;
+      // 1) Ask the gateway which models this key can use, with the key that was typed (not one read
+      //    back from disk a moment after saving). If that fails nothing is saved, so there is never a
+      //    half-set-up provider with a made-up model in it.
+      let models: ModelProviderModelConfiguration[];
       try {
         await loadModelCatalog();
         const upstream = await window.coilcoil.request<FetchProviderModelsResult>({
           type: "fetch_provider_models",
-          input: { baseUrl: sparkBaseUrl(), api: SPARK_API, provider: SPARK_PROVIDER_ID },
+          input: { baseUrl: sparkBaseUrl(), api: SPARK_API, provider: SPARK_PROVIDER_ID, ...apiKey.trim() ? { apiKey: apiKey.trim() } : {} },
         }, runtimeId);
-        if (upstream.models.length) {
-          const models = upstream.models.map(sparkModelFromUpstream);
-          result = await saveProvider(models, false);
-          refreshed = true;
-          // A fresh install has no default model, and the composer refuses to send
-          // without one. Make the first listed model the default, but never replace
-          // a default that already points at something usable.
-          const current = result.configuration;
-          const currentUsable = current.models.some((model) => model.provider === current.provider && model.id === current.modelId && model.configured);
-          if (!currentUsable) {
-            const first = models[0];
-            result = { ...result, configuration: await window.coilcoil.request<RuntimeConfiguration>({
-              type: "configure_model",
-              provider: SPARK_PROVIDER_ID,
-              modelId: first.id,
-              thinkingLevel: first.reasoning ? "medium" : "off",
-            }, runtimeId) };
-          }
-        }
+        models = upstream.models.map(sparkModelFromUpstream);
       } catch (caught) {
-        toastError(`密钥已保存，但获取模型列表失败：${caught instanceof Error ? caught.message : String(caught)}`);
+        toastError(`没有保存：获取模型列表失败，请检查网络和密钥后重试。${caught instanceof Error ? caught.message : String(caught)}`);
+        return;
+      }
+      // 2) Save the key together with that list.
+      let result = await saveProvider(models, true);
+      const refreshed = true;
+      // A fresh install has no default model, and the composer refuses to send without one. Make the
+      // first listed model the default, but never replace a default that already points at something usable.
+      const current = result.configuration;
+      const currentUsable = current.models.some((model) => model.provider === current.provider && model.id === current.modelId && model.configured);
+      if (!currentUsable) {
+        const first = models[0];
+        result = { ...result, configuration: await window.coilcoil.request<RuntimeConfiguration>({
+          type: "configure_model",
+          provider: SPARK_PROVIDER_ID,
+          modelId: first.id,
+          thinkingLevel: first.reasoning ? "medium" : "off",
+        }, runtimeId) };
       }
       setApiKey("");
       onSaved(result.configuration);
