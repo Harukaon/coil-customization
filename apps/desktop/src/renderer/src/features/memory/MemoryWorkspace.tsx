@@ -185,23 +185,6 @@ export function MemoryWorkspace({
 
   return (
     <section className="shell-surface memory-workspace" style={{ visibility: layoutPending ? "hidden" : undefined }} aria-labelledby="memory-workspace-title">
-      <header className="memory-workspace-header window-drag-bar">
-        <WindowDragBar />
-        <div>
-          <span className="settings-icon"><BookOpen size={17} /></span>
-          <div>
-            <h1 id="memory-workspace-title">记忆星云</h1>
-            <p>这台机器上的全部记忆：中心是全局记忆，外圈是各个项目和它们的记忆条目。</p>
-          </div>
-        </div>
-        <div className="memory-header-actions">
-          <span className={`memory-status ${inspection?.memory?.state ?? "idle"}`}><Sparkles size={12} />{statusLabel(inspection)}</span>
-          <button className="settings-header-action" type="button" disabled={loading || saving} onClick={() => void load(true)}><RefreshCw className={loading ? "spin" : ""} size={13} />刷新</button>
-          <button className="settings-header-action primary" type="button" disabled={!settings || !dirty || saving} onClick={() => void save()}><Save size={13} />保存</button>
-          <button className="settings-header-action" type="button" onClick={onClose}><ArrowLeft size={14} />返回对话</button>
-        </div>
-      </header>
-
       <div className="memory-workspace-content">
         {loading && !configuration ? <div className="memory-loading"><LoaderCircle className="spin" size={15} />加载记忆…</div> : null}
         {configuration && settings ? <>
@@ -265,6 +248,24 @@ export function MemoryWorkspace({
           </div>
         </> : null}
       </div>
+      {/* 页头排在内容后面，屏幕上的位置由 grid-row 摆回顶上：内容里的按钮矩形哪怕滚到或被拖到
+          页头底下，页头排在后面也盖得住。约定见 ui/WindowDragBar.tsx。 */}
+      <header className="memory-workspace-header window-drag-bar">
+        <WindowDragBar />
+        <div>
+          <span className="settings-icon"><BookOpen size={17} /></span>
+          <div>
+            <h1 id="memory-workspace-title">记忆星云</h1>
+            <p>这台机器上的全部记忆：中心是全局记忆，外圈是各个项目和它们的记忆条目。</p>
+          </div>
+        </div>
+        <div className="memory-header-actions">
+          <span className={`memory-status ${inspection?.memory?.state ?? "idle"}`}><Sparkles size={12} />{statusLabel(inspection)}</span>
+          <button className="settings-header-action" type="button" disabled={loading || saving} onClick={() => void load(true)}><RefreshCw className={loading ? "spin" : ""} size={13} />刷新</button>
+          <button className="settings-header-action primary" type="button" disabled={!settings || !dirty || saving} onClick={() => void save()}><Save size={13} />保存</button>
+          <button className="settings-header-action" type="button" onClick={onClose}><ArrowLeft size={14} />返回对话</button>
+        </div>
+      </header>
     </section>
   );
 }

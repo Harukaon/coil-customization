@@ -105,6 +105,8 @@ test("标题栏在文档里排在会从它底下经过的内容之后", () => {
   const cases: Array<[file: string, content: string, header: string]> = [
     ["features/conversation/ConversationPane.tsx", 'className="conversation-scroll"', 'className="conversation-header window-drag-bar"'],
     ["features/inspector/InspectorPane.tsx", "className={`inspector-content", 'className="inspector-header window-drag-bar"'],
+    ["features/settings/SkillsWorkspace.tsx", 'className="skills-workspace-content"', 'className="skills-workspace-header window-drag-bar"'],
+    ["features/memory/MemoryWorkspace.tsx", 'className="memory-workspace-content"', 'className="memory-workspace-header window-drag-bar"'],
   ];
   for (const [file, content, header] of cases) {
     const source = readFileSync(resolve(rendererRoot, file), "utf8");
@@ -121,9 +123,15 @@ test("标题栏换到内容后面，屏幕位置由 grid-row 钉住", () => {
   const rows: Array<[selector: string, row: number]> = [
     [".conversation-header", 1], [".conversation-scroll", 2], [".composer-wrap", 3],
     [".inspector-header", 1], [".inspector-content", 2],
+    [".skills-workspace-content", 2], [".memory-workspace-content", 2],
   ];
   for (const [selector, row] of rows) {
     assert.match(declarations(selector), new RegExp(`grid-row:\\s*${row}(?:;|\\s|$)`), `${selector} 要钉在第 ${row} 行`);
+  }
+  for (const header of [".skills-workspace-header", ".memory-workspace-header"]) {
+    const match = new RegExp(`^\\${header} \\{([^}]*)\\}`, "m").exec(styles);
+    assert.ok(match, `styles.css 里找不到 ${header}`);
+    assert.match(match[1], /grid-row:\s*1(?:;|\s|$)/, `${header} 要钉在第 1 行`);
   }
 });
 

@@ -391,19 +391,21 @@ input.archive-search-input::placeholder { color: hsl(var(--th) var(--ts) var(--l
 
 .conversation-pane { --chat-content-width: 820px; position: relative; display: grid; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; grid-template-columns: minmax(0, 1fr); grid-template-rows: 56px minmax(0, 1fr) auto; background: var(--pane-glass); }
 .skills-workspace { display: grid; min-width: 0; min-height: 0; grid-column: 2 / -1; grid-template-rows: 76px minmax(0, 1fr); background: var(--pane-glass); }
-.skills-workspace-header { position: relative; display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 0 26px; border-bottom: 1px solid hsl(var(--th) var(--ts) var(--l-882)); }
+/* 技能页、记忆页的页头在文档里排在内容后面（见 ui/WindowDragBar.tsx 约定第 2 条），
+   两行各自钉住，屏幕上页头仍然在最上面。 */
+.skills-workspace-header { position: relative; display: flex; grid-row: 1; min-width: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 0 26px; border-bottom: 1px solid hsl(var(--th) var(--ts) var(--l-882)); }
 .skills-workspace-header > div { display: flex; min-width: 0; align-items: center; gap: 11px; }
 .skills-workspace-header h1 { margin: 0; color: hsl(var(--th) var(--ts) var(--l-198)); font-size: 17px; font-weight: 650; }
 .skills-workspace-header p { margin: 4px 0 0; color: hsl(var(--th) var(--ts) var(--l-527)); font-size: 10px; }
-.skills-workspace-content { min-width: 0; min-height: 0; overflow: hidden; }
+.skills-workspace-content { grid-row: 2; min-width: 0; min-height: 0; overflow: hidden; }
 [data-platform="darwin"] .app-shell.left-collapsed .skills-workspace-header { padding-left: 82px; }
 .memory-workspace { display: grid; min-width: 0; min-height: 0; grid-column: 2 / -1; grid-template-rows: 76px minmax(0, 1fr); background: var(--pane-glass); }
-.memory-workspace-header { position: relative; display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 0 26px; border-bottom: 1px solid hsl(var(--th) var(--ts) var(--l-882)); }
+.memory-workspace-header { position: relative; display: flex; grid-row: 1; min-width: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 0 26px; border-bottom: 1px solid hsl(var(--th) var(--ts) var(--l-882)); }
 .memory-workspace-header > div:first-of-type { display: flex; min-width: 0; align-items: center; gap: 11px; }
 .memory-workspace-header h1 { margin: 0; color: hsl(var(--th) var(--ts) var(--l-198)); font-size: 18px; font-weight: 650; }
 .memory-workspace-header p { margin: 4px 0 0; color: hsl(var(--th) var(--ts) var(--l-527)); font-size: 11px; }
 .memory-header-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
-.memory-workspace-content { min-width: 0; min-height: 0; overflow: hidden; }
+.memory-workspace-content { grid-row: 2; min-width: 0; min-height: 0; overflow: hidden; }
 [data-platform="darwin"] .app-shell.left-collapsed .memory-workspace-header { padding-left: 82px; }
 /* 工作区标题和聊天标题走同一套「左侧可收缩、右侧固定」的布局。原来的
    space-between flex 在拖动侧栏时会重新计算标题组的剩余宽度，副标题换行后就会

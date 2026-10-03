@@ -15,6 +15,11 @@ export function SkillsWorkspace({
 }): React.JSX.Element {
   return (
     <section className="shell-surface skills-workspace" style={{ visibility: layoutPending ? "hidden" : undefined }} aria-labelledby="skills-workspace-title">
+      <div className="skills-workspace-content">
+        <SkillSettings runtimeId={runtimeId} cwd={cwd} />
+      </div>
+      {/* 页头排在内容后面，屏幕上的位置由 grid-row 摆回顶上：技能列表往上滚走的按钮矩形还垫在
+          页头底下，页头排在后面才盖得住。约定见 ui/WindowDragBar.tsx。 */}
       <header className="skills-workspace-header window-drag-bar">
         <WindowDragBar />
         <div>
@@ -28,9 +33,6 @@ export function SkillsWorkspace({
           <ArrowLeft size={14} />返回对话
         </button>
       </header>
-      <div className="skills-workspace-content">
-        <SkillSettings runtimeId={runtimeId} cwd={cwd} />
-      </div>
     </section>
   );
 }
