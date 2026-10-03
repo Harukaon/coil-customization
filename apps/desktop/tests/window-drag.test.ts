@@ -98,6 +98,62 @@ test("左侧栏的拖动层排在滚动内容之后，顶部仍由占位高度�
   assert.match(declarations(".sidebar-drag"), /height:\s*56px/);
 });
 
+test("标题栏在文档里排在会从它底下经过的内容之后", () => {
+  // 拖动矩形按文档顺序叠，最后盖住某一点的说了算，而且不按 overflow 裁剪：滚到标题栏
+  // 底下的按钮（消息气泡整个就是一个按钮）照样挖洞。标题栏排在后面，它的拖动层才能把
+  // 这些看不见的洞整块盖回去。2026-10 的「会话标题栏偶发拖不动」就是标题栏排在前面。
+  const cases: Array<[file: string, content: string, header: string]> = [
+    ["features/conversation/ConversationPane.tsx", 'className="conversation-scroll"', 'className="conversation-header window-drag-bar"'],
+    ["features/inspector/InspectorPane.tsx", "className={`inspector-content", 'className="inspector-header window-drag-bar"'],
+  ];
+  for (const [file, content, header] of cases) {
+    const source = readFileSync(resolve(rendererRoot, file), "utf8");
+    const contentAt = source.indexOf(content);
+    const headerAt = source.indexOf(header);
+    assert.ok(contentAt >= 0, `${file} 里找不到 ${content}`);
+    assert.ok(headerAt >= 0, `${file} 里找不到 ${header}`);
+    assert.ok(headerAt > contentAt, `${file}：标题栏必须写在 ${content} 后面`);
+  }
+});
+
+test("标题栏换到内容后面，屏幕位置由 grid-row 钉住", () => {
+  // 只改文档顺序、不钉格子的话，自动排布会把标题栏排到最后一行去。
+  const rows: Array<[selector: string, row: number]> = [
+    [".conversation-header", 1], [".conversation-scroll", 2], [".composer-wrap", 3],
+    [".inspector-header", 1], [".inspector-content", 2],
+  ];
+  for (const [selector, row] of rows) {
+    assert.match(declarations(selector), new RegExp(`grid-row:\\s*${row}(?:;|\\s|$)`), `${selector} 要钉在第 ${row} 行`);
+  }
+});
+
+test("收起的侧栏整块不声明拖动属性", () => {
+  // 收起只是变透明、原地不动，右栏标签条正好垫在会话标题栏右半边底下，照样挖洞。
+  const rule = /^\.app-shell\.left-collapsed > \.sidebar,\s*\n\.app-shell\.left-collapsed > \.sidebar \*,\s*\n\.app-shell\.right-collapsed > \.inspector-pane,\s*\n\.app-shell\.right-collapsed > \.inspector-pane \* \{([^}]*)\}/m.exec(styles);
+  assert.ok(rule, "styles.css 里要有一条规则清掉收起面板里所有元素的拖动声明");
+  assert.match(rule[1], /-webkit-app-region:\s*initial/);
+});
+
+test("右栏标签条整条一块 no-drag，里面的标签不各自声明", () => {
+  // 标签多了横向滚，滚出条外的标签会伸到条外面（往左一直伸进会话标题栏）挖洞。
+  const inspector = readFileSync(resolve(rendererRoot, "features/inspector/InspectorPane.tsx"), "utf8");
+  assert.match(inspector, /className="inspector-nav no-drag"/);
+  assert.match(declarations(".inspector-nav *"), /-webkit-app-region:\s*initial/);
+});
+
+test("不许写 -webkit-app-region: none——Chromium 把它当成 no-drag", () => {
+  // AppRegion::ApplyValue 只认 drag，其余关键字一律落成 no-drag。想清掉声明只能写
+  // initial。2026-10 第一版修复就踩过：写成 none 之后，收起的右栏整块变成了洞。
+  const offenders = rendererFiles([".css", ".ts", ".tsx"])
+    .filter((file) => {
+      // 只看代码，注释里讲这条坑的话不算。
+      const code = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+      return /-webkit-app-region:\s*none|WebkitAppRegion:\s*["']none/.test(code);
+    })
+    .map((file) => file.slice(rendererRoot.length + 1));
+  assert.deepEqual(offenders, [], "要清掉拖动声明请写 initial");
+});
+
 test("挂了拖动层的标题栏，标记类必须写在标记里", () => {
   // 以前这个类是脚本在运行时补上去的，跟着刷新机制一起拆了。现在没有任何脚本会补，
   // 漏写就等于拖动层没有定位上下文，会铺到更外面某个祖先上去。
@@ -243,9 +299,9 @@ test("no-window-drag 不是一个类，样式表里根本没有它", () => {
 
 test("拆掉的刷新补丁不许再长回来", () => {
   // 2026-09-16 把整套「逼 Chromium 重算拖动矩形」的东西拆干净了：哨兵元素、悬停
-  // 轮询、按下时重算、resize 重算、body 子节点监听、每条标题栏的两个观察器。它们
-  // 治的是一个从来没被定位过的偶发失效，只是把现场盖住。再遇到拖不动，从「左侧栏
-  // 那条是空的、会话标题栏上面压着文字」这个差别查起，不要往回加刷新。
+  // 轮询、按下时重算、resize 重算、body 子节点监听、每条标题栏的两个观察器。洞是按
+  // 元素当时的真实位置算出来的，重算多少次都还在。再遇到拖不动，先看诊断日志里
+  // drag_press_reached_page 的 modelWinner（挖洞的就是它），不要往回加刷新。
   const banned = ["window-drag-sentinel", "refreshWindowDragRegions", "installWindowDragRegions", "observeWindowDragBar"];
   const offenders: string[] = [];
   for (const file of rendererFiles([".css", ".ts", ".tsx"])) {

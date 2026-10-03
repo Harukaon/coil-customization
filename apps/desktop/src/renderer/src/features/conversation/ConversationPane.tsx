@@ -298,14 +298,6 @@ export function ConversationPane({
 
   return (
     <section className={`shell-surface conversation-pane ${fileDragActive ? "file-drag-active" : ""} ${hasComposerActivity ? "has-composer-activity" : ""}`} style={{ "--chat-content-width": `${chatContentWidth}px`, visibility: layoutPending ? "hidden" : undefined } as CSSProperties} onDragEnter={onDragEnter} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
-      {/* 拖动层必须排在最前，后面的按钮才能在它上面挖出 no-drag 的洞；见 ui/window-drag.ts。 */}
-      <header className="conversation-header window-drag-bar">
-        <WindowDragBar />
-        <div className="conversation-title" title={conversationTitle}>
-          <strong>{conversationTitle}</strong>{project ? <span>{project.name}</span> : null}
-        </div>
-      </header>
-
       <div className="conversation-scroll">
         <div className="conversation-body" ref={timelineRef} onScroll={handleBodyScroll}>
           {loading ? <div className="loading-state loading-state-stacked"><BlobsLoader size={64} /><span>正在打开工作区…</span></div> : timeline.length || running || startingSession ? (
@@ -365,6 +357,16 @@ export function ConversationPane({
         ) : null}
         {!loading ? <PromptAnchorRail anchors={promptAnchors} loadedFrom={timelineStart} onSelect={jumpToAnchor} /> : null}
       </div>
+
+      {/* 标题栏排在消息列表后面，屏幕上的位置由 grid-row 摆回顶上。消息气泡是按钮，往上滚走
+          以后矩形还垫在标题栏底下；标题栏排在后面，它的拖动层才能把这些看不见的洞盖回去。
+          标题栏自己的拖动层仍然是它的第一个子节点。整条约定见 ui/WindowDragBar.tsx。 */}
+      <header className="conversation-header window-drag-bar">
+        <WindowDragBar />
+        <div className="conversation-title" title={conversationTitle}>
+          <strong>{conversationTitle}</strong>{project ? <span>{project.name}</span> : null}
+        </div>
+      </header>
 
       <div className="composer-wrap">
         <div className="composer-width-resizer left" role="separator" aria-label="调整对话宽度" aria-orientation="vertical" onPointerDown={(event) => beginChatWidthResize("left", event)} />

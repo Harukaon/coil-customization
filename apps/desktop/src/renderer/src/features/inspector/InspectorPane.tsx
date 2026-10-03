@@ -119,7 +119,13 @@ export function InspectorPane<T extends string>({
 
   return (
     <aside className="inspector-pane">
-      {/* 拖动层排在最前，标签条和右侧按钮在它上面挖洞。 */}
+      {addControlTarget && addControl ? createPortal(addControl, addControlTarget) : null}
+      <section className={`inspector-content inspector-content-${activeTab}`}>
+        {tabs.length ? children : <div className="inspector-empty-tabs">{emptyState}</div>}
+      </section>
+      {/* 标题栏排在内容后面，屏幕上的位置由 grid-row 摆回顶上：内容往上滚走的按钮矩形还垫在
+          标题栏底下，标题栏排在后面才盖得住。标题栏里面，拖动层仍然排在最前，标签条和右侧
+          按钮在它上面挖洞。整条约定见 ui/WindowDragBar.tsx。 */}
       <header className="inspector-header window-drag-bar">
         <WindowDragBar />
         <nav ref={navRef} className="inspector-nav no-drag" aria-label="右侧面板">
@@ -169,10 +175,6 @@ export function InspectorPane<T extends string>({
         ) : null}
         {!addControlTarget && addControl ? <div className="inspector-actions no-drag">{addControl}</div> : null}
       </header>
-      {addControlTarget && addControl ? createPortal(addControl, addControlTarget) : null}
-      <section className={`inspector-content inspector-content-${activeTab}`}>
-        {tabs.length ? children : <div className="inspector-empty-tabs">{emptyState}</div>}
-      </section>
     </aside>
   );
 }

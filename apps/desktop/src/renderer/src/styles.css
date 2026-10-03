@@ -190,6 +190,14 @@ input.coil-select-search-input { height: 100%; min-width: 0; flex: 1; padding: 0
 }
 .app-shell.left-collapsed > .sidebar { opacity: 0; transform: translateX(-8px); pointer-events: none; }
 .app-shell.right-collapsed > .inspector-pane { opacity: 0; transform: translateX(8px); pointer-events: none; }
+/* 收起只是变透明、原地不动：右栏的标签条正好垫在会话标题栏右半边底下，它的按钮照样
+   在窗口的拖动矩形里挖洞（透明度和 pointer-events 都管不到那份矩形）。收起的面板整块
+   不声明拖动属性，展开时原样回来。左栏同理。必须写 initial：写 none 在 Chromium 里
+   等于 no-drag，整块面板反而全变成洞（见 ui/WindowDragBar.tsx 约定第 6 条）。 */
+.app-shell.left-collapsed > .sidebar,
+.app-shell.left-collapsed > .sidebar *,
+.app-shell.right-collapsed > .inspector-pane,
+.app-shell.right-collapsed > .inspector-pane * { -webkit-app-region: initial; }
 body.resizing-panels .app-shell,
 body.resizing-panels .app-shell > .shell-surface,
 body.resizing-panels .app-shell > .sidebar,
@@ -453,14 +461,16 @@ input.archive-search-input::placeholder { color: hsl(var(--th) var(--ts) var(--l
   visibility: hidden;
   transition: none;
 }
-.conversation-header { position: relative; display: flex; align-items: center; gap: 10px; padding: 0 calc(8px + var(--window-controls-width)) 0 20px; transition: padding-left 220ms cubic-bezier(.22, 1, .36, 1); }
+/* 三行各自钉在自己的格子里：标题栏在文档里排在消息列表后面（见 ui/WindowDragBar.tsx
+   约定第 2 条），屏幕上仍然在最上面。 */
+.conversation-header { position: relative; display: flex; grid-row: 1; align-items: center; gap: 10px; padding: 0 calc(8px + var(--window-controls-width)) 0 20px; transition: padding-left 220ms cubic-bezier(.22, 1, .36, 1); }
 .app-shell.left-collapsed .conversation-header { padding-left: 60px; }
 [data-platform="darwin"] .app-shell.left-collapsed .conversation-header { padding-left: 122px; }
 .conversation-title { display: flex; min-width: 0; flex: 1 1 auto; flex-direction: column; gap: 2px; -webkit-user-select: none; user-select: none; }
 .conversation-title strong, .conversation-title span { -webkit-user-select: none; user-select: none; }
 .conversation-title strong { display: block; width: 100%; max-width: 620px; overflow: hidden; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .conversation-title span { color: hsl(var(--th) var(--ts) var(--l-531)); font-size: 10px; }
-.conversation-scroll { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.conversation-scroll { position: relative; grid-row: 2; min-width: 0; min-height: 0; overflow: hidden; }
 .conversation-body { min-width: 0; min-height: 0; height: 100%; overflow-x: hidden; overflow-y: auto; padding: 30px clamp(12px, 2vw, 28px) 76px; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .conversation-pane.has-composer-activity .conversation-body { padding-bottom: 190px; }
 .scroll-to-bottom {
@@ -740,7 +750,7 @@ input.archive-search-input::placeholder { color: hsl(var(--th) var(--ts) var(--l
    的地方接着走，不跳帧；判定逻辑和为什么焦点必须由主进程给，见 ui/idle-motion.ts。 */
 :root[data-motion="paused"] .coil-loader-ink::before, :root[data-motion="paused"] .coil-loader-ink::after { animation-play-state: paused; }
 
-.composer-wrap { position: relative; z-index: 2; width: calc(100% - 48px); min-width: 0; max-width: var(--chat-content-width); margin: 0 auto; padding-bottom: 12px; }
+.composer-wrap { position: relative; z-index: 2; grid-row: 3; width: calc(100% - 48px); min-width: 0; max-width: var(--chat-content-width); margin: 0 auto; padding-bottom: 12px; }
 .composer-width-resizer { position: absolute; z-index: 3; top: 8px; bottom: 20px; width: 7px; cursor: ew-resize; touch-action: none; }
 .composer-width-resizer.left { left: -4px; }
 .composer-width-resizer.right { right: -4px; }
@@ -1059,7 +1069,9 @@ input.model-popover-search-input { min-width: 0; flex: 1; border: 0; outline: 0;
 .performance-legend i { width: 10px; height: 10px; border: 1px solid rgb(27 31 36 / 6%); border-radius: 2px; }
 
 .inspector-pane { display: grid; grid-template-rows: 44px minmax(0, 1fr); border-left: 1px solid hsl(var(--th) var(--ts) var(--l-876) / 70%); background: var(--pane-glass); }
-.inspector-header { position: relative; display: flex; min-width: 0; align-items: center; gap: 7px; padding: 0 8px; color: hsl(var(--th) var(--ts) var(--l-457)); font-size: 12px; font-weight: 550; }
+/* 标题栏在文档里排在内容后面（见 ui/WindowDragBar.tsx 约定第 2 条），两行各自钉住，
+   屏幕上标题栏仍然在最上面。 */
+.inspector-header { position: relative; display: flex; grid-row: 1; min-width: 0; align-items: center; gap: 7px; padding: 0 8px; color: hsl(var(--th) var(--ts) var(--l-457)); font-size: 12px; font-weight: 550; }
 .inspector-actions { display: flex; flex: 0 0 auto; align-items: center; margin-left: auto; }
 /* 右栏展开时它在窗口最右上角，正好和折叠态的按钮使用同一个锚点。 */
 .inspector-add-popover { z-index: 1000; display: grid; min-width: 116px; gap: 2px; padding: 4px; border: 1px solid hsl(var(--th) var(--ts) var(--l-853)); border-radius: var(--radius-xl); outline: 0; background: hsl(var(--th) var(--ts) var(--l-1000)); box-shadow: 0 8px 22px rgb(28 28 25 / 14%); }
@@ -1072,6 +1084,11 @@ input.model-popover-search-input { min-width: 0; flex: 1; border: 0; outline: 0;
    右半边实际按到的是最小化 / 最大化。 */
 .inspector-nav { display: flex; width: max-content; min-width: 0; max-width: calc(100% - 69px - var(--window-controls-width)); flex: 0 1 auto; align-items: center; gap: 3px; overflow-x: auto; scrollbar-width: none; }
 .inspector-nav::-webkit-scrollbar { display: none; }
+/* 标签条整条是一块 no-drag，里面的标签按钮不再各自声明：标签多了要横向滚，滚出去的标签
+   伸在标签条外面，左边一直伸进会话标题栏，它们的矩形会在拖动带上挖出看不见的洞。看得见
+   的标签都在标签条这一块里面，照样点得到。清掉声明只能写 initial，写 none 等于 no-drag
+   （见 ui/WindowDragBar.tsx 约定第 6 条）。 */
+.inspector-nav * { -webkit-app-region: initial; }
 .inspector-scrollbar {
   position: absolute;
   z-index: 2;
@@ -1102,7 +1119,7 @@ input.model-popover-search-input { min-width: 0; flex: 1; border: 0; outline: 0;
 .inspector-nav .inspector-tab-close { display: grid; width: 25px; height: 25px; flex: 0 0 auto; margin-right: 2px; padding: 0; border-radius: var(--radius-md); color: inherit; background: transparent; place-items: center; cursor: pointer; }
 .inspector-tab-close:hover { background: hsl(var(--th) var(--ts) var(--l-861)); }
 .inspector-nav small { position: absolute; top: -3px; right: 3px; min-width: 15px; padding: 1px 4px; border-radius: var(--radius-xl); color: hsl(var(--th) var(--ts) var(--l-457)); background: hsl(var(--th) var(--ts) var(--l-861)); font-size: 9px; text-align: center; }
-.inspector-content { min-width: 0; min-height: 0; overflow: hidden; border-top: 1px solid hsl(var(--th) var(--ts) var(--l-916)); }
+.inspector-content { grid-row: 2; min-width: 0; min-height: 0; overflow: hidden; border-top: 1px solid hsl(var(--th) var(--ts) var(--l-916)); }
 .inspector-tab-panel { display: none; width: 100%; height: 100%; min-width: 0; min-height: 0; }
 .inspector-tab-panel.active { display: block; }
 .inspector-empty-tabs { display: flex; min-height: 100%; align-items: center; flex-direction: column; justify-content: center; padding: 28px 18px; color: hsl(var(--th) var(--ts) var(--l-457)); text-align: center; }
