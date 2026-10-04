@@ -10,7 +10,6 @@ test("Pi package lists only loadable extension factories", async () => {
   const extensions = manifest.pi?.extensions ?? [];
 
   assert.ok(extensions.length > 0);
-  assert.ok(!extensions.some((path) => path.includes("secret-store")));
 
   for (const path of extensions) {
     const module = await import(new URL(`../${path}`, import.meta.url).href);

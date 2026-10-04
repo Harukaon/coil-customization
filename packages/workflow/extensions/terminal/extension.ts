@@ -1,7 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createWriteStream, statSync } from "node:fs";
 import { resolve } from "node:path";
-import { resolveSecretEnvironment, type SecretEnvironmentInput } from "../secret-store.ts";
 import {
   bashParameters,
   COMPLETED_SESSION_TTL_MS,
@@ -57,7 +56,6 @@ interface StartRequest {
   notifyOn?: "exit" | "match" | "stalled";
   notifyOutputRegex?: string;
   stalledMs?: number;
-  secretEnv?: SecretEnvironmentInput;
   limit?: number;
   cols?: number;
   rows?: number;
@@ -209,7 +207,6 @@ export default function terminalExtension(pi: ExtensionAPI): void {
     }
     if (!cwdStat.isDirectory()) throw new Error(`Terminal cwd is not a directory: ${cwd}`);
 
-    const resolvedSecrets = await resolveSecretEnvironment(request.secretEnv);
     const pty = await loadPty();
     const { shell, args: shellArgs } = terminalShell();
     const child = pty.spawn(shell, shellArgs(command), {
@@ -217,7 +214,7 @@ export default function terminalExtension(pi: ExtensionAPI): void {
       cols: request.cols ?? 120,
       rows: request.rows ?? 40,
       cwd,
-      env: { ...process.env, TERM: "xterm-256color", ...resolvedSecrets.values },
+      env: { ...process.env, TERM: "xterm-256color" },
     });
     const outputPath = outputPathFor(runToken, id);
     const outputStream = createWriteStream(outputPath, { flags: "w", mode: 0o600 });
@@ -237,9 +234,6 @@ export default function terminalExtension(pi: ExtensionAPI): void {
       outputMode: request.outputMode,
       outputPath,
       outputStream,
-      secretValues: Object.values(resolvedSecrets.values),
-      secretHandles: resolvedSecrets.handles,
-      redactionCarry: "",
       buffer: "",
       bufferStart: 0,
       outputEnd: 0,
@@ -409,7 +403,6 @@ export default function terminalExtension(pi: ExtensionAPI): void {
         waitForExitOnly: true,
         hardTimeoutMs,
         notifyOutputRegex: params.notify_on_output,
-        secretEnv: params.secret_env as SecretEnvironmentInput | undefined,
         limit: params.limit,
         autoNotifyExit: true,
         onUpdate,
@@ -470,7 +463,6 @@ export default function terminalExtension(pi: ExtensionAPI): void {
           waitForExitOnly: false,
           notifyOn: params.notifyOn,
           stalledMs: params.stalledMs,
-          secretEnv: params.secretEnv as SecretEnvironmentInput | undefined,
           limit: params.limit,
           cols: params.cols,
           rows: params.rows,

@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import terminalExtension from "../extensions/terminal.ts";
-import { redactSecrets } from "../extensions/secret-store.ts";
 
 function createHarness() {
   const handlers = new Map<string, Array<(...args: any[]) => any>>();
@@ -451,47 +448,4 @@ test("exits during a run are held until it settles and then wake one turn", asyn
   for (const shell of started) {
     assert.match(message.message.content, new RegExp(shell.details.background_shell_id));
   }
-});
-
-test("secret references inject into the child and redact output", async (context) => {
-  const agentDir = await mkdtemp(join(tmpdir(), "hao-pi-secrets-"));
-  const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
-  process.env.PI_CODING_AGENT_DIR = agentDir;
-  context.after(async () => {
-    if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
-    else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
-    await rm(agentDir, { recursive: true, force: true });
-  });
-
-  const sourcePath = join(agentDir, "source.json");
-  await writeFile(sourcePath, JSON.stringify({ apiKey: "abcab" }));
-  const registryPath = join(agentDir, "secret-refs.json");
-  await writeFile(
-    registryPath,
-    JSON.stringify({
-      testRef: { source: "json", path: sourcePath, jsonPath: "apiKey" },
-    }),
-  );
-  await chmod(registryPath, 0o600);
-
-  const { run, shutdown } = createHarness();
-  context.after(shutdown);
-  const result = await run({
-    action: "start",
-    command:
-      "python3 -c 'import os,sys,time; s=os.environ[\"TEST_SECRET\"]; sys.stdout.write(s[:3]); sys.stdout.flush(); time.sleep(0.05); sys.stdout.write(s[3:]+\" tail\"); sys.stdout.flush()'",
-    secretEnv: { TEST_SECRET: "testRef" },
-    timeoutMs: 2_000,
-  });
-
-  assert.equal(result.details.secretHandles[0], "testRef");
-  assert.match(result.details.output, /\[REDACTED\] tail/);
-  assert.doesNotMatch(result.details.output, /abcab|abca|bcab/);
-});
-
-test("secret redaction handles overlapping values", () => {
-  assert.equal(
-    redactSecrets("a=long-secret short-secret", ["short-secret", "long-secret"]),
-    "a=[REDACTED] [REDACTED]",
-  );
 });

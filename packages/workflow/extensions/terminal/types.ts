@@ -39,9 +39,6 @@ export const terminalParameters = Type.Object(
       description: "For action=start, notify when the process exits, waitFor matches, or output stalls",
     })),
     stalledMs: Type.Optional(Type.Integer({ minimum: 1_000, maximum: MAX_WAIT_TIMEOUT_MS })),
-    secretEnv: Type.Optional(Type.Record(Type.String(), Type.String(), {
-      description: "For action=start, optionally map environment names to values",
-    })),
     limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100_000 })),
     input: Type.Optional(Type.String({ description: "Text sent to the PTY for action=send" })),
     enter: Type.Optional(Type.Boolean({ description: "Append Enter after input for action=send" })),
@@ -85,9 +82,6 @@ export const bashParameters = Type.Object(
     })),
     output_mode: Type.Optional(StringEnum(["screen", "log"] as const, {
       description: "screen coalesces redraws; log preserves emitted lines",
-    })),
-    secret_env: Type.Optional(Type.Record(Type.String(), Type.String(), {
-      description: "Optionally map environment names to values",
     })),
     name: Type.Optional(Type.String({ maxLength: 60, description: "Optional memorable background shell name" })),
     limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100_000 })),
@@ -186,9 +180,6 @@ export interface ManagedTerminal {
   outputMode: "screen" | "log";
   outputPath: string;
   outputStream?: WriteStream;
-  secretValues: string[];
-  secretHandles: string[];
-  redactionCarry: string;
   buffer: string;
   bufferStart: number;
   outputEnd: number;

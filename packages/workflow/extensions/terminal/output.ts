@@ -2,7 +2,6 @@ import { chmodSync, existsSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { stripVTControlCharacters } from "node:util";
-import { redactSecrets } from "../secret-store.ts";
 import {
   DEFAULT_STALLED_MS,
   MAX_BUFFER_CHARS,
@@ -272,35 +271,6 @@ export function notifyListeners(session: ManagedTerminal): void {
   checkNotifications(session);
 }
 
-function redactTerminalChunk(session: ManagedTerminal, rawData: string): string {
-  if (session.secretValues.length === 0) return rawData;
-  const combined = session.redactionCarry + rawData;
-  const secrets = session.secretValues.filter(Boolean).sort((a, b) => b.length - a.length);
-  let output = "";
-  let index = 0;
-  while (index < combined.length) {
-    const matched = secrets.find((secret) => combined.startsWith(secret, index));
-    if (matched) {
-      output += "[REDACTED]";
-      index += matched.length;
-      continue;
-    }
-    const remaining = combined.slice(index);
-    if (secrets.some((secret) => remaining.length < secret.length && secret.startsWith(remaining))) break;
-    output += combined[index];
-    index += 1;
-  }
-  session.redactionCarry = combined.slice(index);
-  return output;
-}
-
-export function flushRedaction(session: ManagedTerminal): string {
-  if (!session.redactionCarry) return "";
-  const pending = redactSecrets(session.redactionCarry, session.secretValues);
-  session.redactionCarry = "";
-  return pending;
-}
-
 export function appendLogOutput(session: ManagedTerminal, rawData: string): void {
   const data = cleanTerminalOutput(rawData);
   if (!data) return;
@@ -316,19 +286,14 @@ export function appendLogOutput(session: ManagedTerminal, rawData: string): void
   notifyListeners(session);
 }
 
-function appendRedactedOutput(session: ManagedTerminal, redacted: string): void {
-  if (!redacted) return;
-  session.outputStream?.write(cleanTerminalOutput(redacted));
-  if (session.outputMode === "screen") consumeScreenOutput(session, redacted);
-  else appendLogOutput(session, redacted);
-}
-
 export function appendOutput(session: ManagedTerminal, rawData: string): void {
-  appendRedactedOutput(session, redactTerminalChunk(session, rawData));
+  if (!rawData) return;
+  session.outputStream?.write(cleanTerminalOutput(rawData));
+  if (session.outputMode === "screen") consumeScreenOutput(session, rawData);
+  else appendLogOutput(session, rawData);
 }
 
 export function flushTerminalOutput(session: ManagedTerminal): void {
-  appendRedactedOutput(session, flushRedaction(session));
   if (session.outputMode === "screen") flushScreenOutput(session);
 }
 
