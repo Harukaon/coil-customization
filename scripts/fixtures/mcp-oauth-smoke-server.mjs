@@ -10,6 +10,7 @@ import {
 } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 import { DemoInMemoryAuthProvider } from "@modelcontextprotocol/sdk/examples/server/demoInMemoryOAuthProvider.js";
+import { InvalidGrantError, InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import express from "express";
 import * as z from "zod/v4";
 
@@ -39,6 +40,36 @@ if (!resourceAddress || typeof resourceAddress === "string") throw new Error("OA
 const mcpServerUrl = new URL(`http://127.0.0.1:${resourceAddress.port}/mcp`);
 
 const provider = new DemoInMemoryAuthProvider((resource) => resource?.href === mcpServerUrl.href);
+const rotatingRefresh = process.env.MCP_FIXTURE_ROTATING_REFRESH === "1";
+const refreshTokens = new Map();
+let refreshAttempts = 0;
+if (rotatingRefresh) {
+  const verifyToken = provider.verifyAccessToken.bind(provider);
+  provider.verifyAccessToken = async (token) => {
+    try { return await verifyToken(token); }
+    catch { throw new InvalidTokenError("Expired access token"); }
+  };
+  const exchangeCode = provider.exchangeAuthorizationCode.bind(provider);
+  provider.exchangeAuthorizationCode = async (...args) => {
+    const tokens = await exchangeCode(...args);
+    const refreshToken = randomUUID();
+    refreshTokens.set(refreshToken, tokens.access_token);
+    return { ...tokens, refresh_token: refreshToken };
+  };
+  provider.exchangeRefreshToken = async (_client, oldRefreshToken) => {
+    refreshAttempts++;
+    const previousAccess = refreshTokens.get(oldRefreshToken);
+    if (!previousAccess) throw new InvalidGrantError("Refresh token already used");
+    refreshTokens.delete(oldRefreshToken);
+    const accessToken = randomUUID();
+    const refreshToken = randomUUID();
+    provider.tokens.set(accessToken, {
+      ...provider.tokens.get(previousAccess), token: accessToken, expiresAt: Date.now() + 3600000,
+    });
+    refreshTokens.set(refreshToken, accessToken);
+    return { access_token: accessToken, refresh_token: refreshToken, token_type: "bearer", expires_in: 3600 };
+  };
+}
 const scopesSupported = ["mcp:tools"];
 authApp.use(mcpAuthRouter({
   provider,
@@ -56,7 +87,13 @@ resourceApp.get("/status", (_request, response) => {
     authorizedMcpRequests,
     clients: provider.clientsStore.clients.size,
     tokens: provider.tokens.size,
+    refreshAttempts,
   });
+});
+resourceApp.post("/expire", (_request, response) => {
+  if (!rotatingRefresh) return response.sendStatus(404);
+  for (const token of provider.tokens.values()) token.expiresAt = Date.now() - 1;
+  response.sendStatus(204);
 });
 
 const requireOAuth = requireBearerAuth({

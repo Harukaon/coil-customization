@@ -206,6 +206,41 @@ test("HTTP 服务器的整条 OAuth 流程，从头到尾不需要任何会话",
   assert.equal((await manager.connect("oauth")).status, "needs-auth");
 });
 
+test("一次性轮换令牌过期时，并发工具调用只续期一次且无需重新登录", { timeout: 90_000 }, async (t) => {
+  const fixture = await startFixture({ MCP_FIXTURE_ROTATING_REFRESH: "1" });
+  t.after(() => fixture.stop());
+  const directory = mkdtempSync(join(tmpdir(), "coilcoil-mcp-rotation-"));
+  const store = new McpCredentialStore(defaultCredentialFile(join(directory, "agent")));
+  const definition = httpServer("rotating", fixture.ready.mcpServerUrl);
+  const makeManager = () => new McpManager({
+    loadServers: () => [definition], store, callback: new McpAuthCallbackServer([0]),
+    openAuthorization: () => undefined,
+  });
+  const first = makeManager();
+  const second = makeManager();
+  t.after(() => Promise.all([first.close(), second.close()]));
+
+  const started = await first.startAuth("rotating");
+  assert.ok(started.authorizationUrl);
+  await first.completeAuth("rotating", await approveInBrowser(started.authorizationUrl));
+  assert.equal((await second.connect("rotating")).status, "connected");
+  const before = store.get(credentialKey(fixture.ready.mcpServerUrl))?.tokens as { refresh_token?: string };
+  assert.ok(before.refresh_token);
+
+  const base = new URL(fixture.ready.mcpServerUrl).origin;
+  assert.equal((await fetch(`${base}/expire`, { method: "POST" })).status, 204);
+  const tools = await Promise.all([
+    first.callTool("rotating", "oauth-echo", { text: "first" }),
+    second.callTool("rotating", "oauth-echo", { text: "second" }),
+  ]);
+  for (const result of tools) assert.ok(result, "续期后工具仍可用");
+  const after = store.get(credentialKey(fixture.ready.mcpServerUrl))?.tokens as { refresh_token?: string };
+  assert.ok(after.refresh_token && after.refresh_token !== before.refresh_token, "新令牌必须保存下来");
+  const status = await (await fetch(`${base}/status`)).json() as { refreshAttempts: number };
+  assert.equal(status.refreshAttempts, 1, "服务端只应收到一次刷新请求");
+  assert.equal((await first.connect("rotating")).status, "connected", "不能误报需要重新认证");
+});
+
 test("没有先检查过的时候，认证自己去把授权页拿回来", { timeout: 90_000 }, async (t) => {
   const fixture = await startFixture();
   t.after(() => fixture.stop());

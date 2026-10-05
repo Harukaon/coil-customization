@@ -113,6 +113,105 @@ test("两个服务器的凭据互不串门", () => {
   assert.deepEqual(a.tokens(), tokens);
 });
 
+test("并发续期只请求一次，旧请求不能清除或覆盖新凭证", async () => {
+  const { provider: first, store } = provider();
+  const second = new McpOAuthProvider({
+    serverUrl: SERVER, store, redirectUrl: first.redirectUrl, openAuthorization: () => undefined,
+  });
+  first.saveTokens(tokens);
+  let release!: (response: Response) => void;
+  let calls = 0;
+  const fetchRefresh = () => {
+    calls++;
+    return new Promise<Response>((resolve) => { release = resolve; });
+  };
+  const request = new URLSearchParams({ grant_type: "refresh_token", refresh_token: "rt" });
+  const one = first.withAuthContext(async () => {
+    first.tokens();
+    const response = await first.refresh(request, fetchRefresh);
+    const fresh = await response.json() as OAuthTokens;
+    first.saveTokens(fresh);
+    return fresh;
+  });
+  const two = second.withAuthContext(async () => {
+    second.tokens();
+    const response = await second.refresh(request, fetchRefresh);
+    const fresh = await response.json() as OAuthTokens;
+    // The slower SDK invocation may save or invalidate after a newer result.
+    await one;
+    second.saveTokens(fresh);
+    second.invalidateCredentials("tokens");
+    return fresh;
+  });
+  assert.equal(calls, 1, "同一份旧 refresh token 只能向服务端续期一次");
+  release(new Response(JSON.stringify({ access_token: "new-at", refresh_token: "new-rt", token_type: "Bearer" }), {
+    status: 200, headers: { "content-type": "application/json" },
+  }));
+  await Promise.all([one, two]);
+  assert.equal(second.tokens()?.refresh_token, "new-rt", "旧请求返回后仍要保住新令牌");
+
+  // A request which read the old token before the successful rotation may only
+  // reach the fetch hook after the new token was saved.
+  const late = await second.withAuthContext(async () => second.refresh(request, fetchRefresh));
+  assert.equal((await late.json() as OAuthTokens).refresh_token, "new-rt");
+  assert.equal(calls, 1, "迟到的旧请求不应拿已失效的令牌再找服务端");
+});
+
+test("服务端不轮换 refresh token 时，下次过期必须重新续期", async () => {
+  const { provider: auth } = provider();
+  auth.saveTokens(tokens);
+  let calls = 0;
+  const request = new URLSearchParams({ grant_type: "refresh_token", refresh_token: "rt" });
+  for (const access of ["new-at-1", "new-at-2"]) {
+    await auth.withAuthContext(async () => {
+      auth.tokens();
+      const response = await auth.refresh(request, async () => {
+        calls++;
+        return new Response(JSON.stringify({ access_token: access, refresh_token: "rt", token_type: "Bearer" }));
+      });
+      auth.saveTokens(await response.json() as OAuthTokens);
+    });
+  }
+  assert.equal(calls, 2);
+  assert.equal(auth.tokens()?.access_token, "new-at-2");
+});
+
+test("迟到的 invalid_grant 不得抹掉另一请求保存的新令牌", async () => {
+  const { provider: auth } = provider();
+  auth.saveTokens(tokens);
+  let release!: (response: Response) => void;
+  await auth.withAuthContext(async () => {
+    auth.tokens();
+    const pending = auth.refresh(
+      new URLSearchParams({ grant_type: "refresh_token", refresh_token: "rt" }),
+      () => new Promise<Response>((resolve) => { release = resolve; }),
+    );
+    auth.saveTokens({ access_token: "new-at", refresh_token: "new-rt", token_type: "Bearer" });
+    release(new Response(JSON.stringify({ error: "invalid_grant" }), { status: 400 }));
+    const response = await pending;
+    assert.equal(response.status, 200, "缓存已轮换时，旧请求的失败应转为现有凭证");
+    assert.equal((await response.json() as OAuthTokens).refresh_token, "new-rt");
+    auth.invalidateCredentials("tokens");
+    auth.saveTokens({ access_token: "stale-at", refresh_token: "stale-rt", token_type: "Bearer" });
+  });
+  assert.equal(auth.tokens()?.refresh_token, "new-rt");
+});
+
+test("当前刷新令牌确实失效时仍会清除凭证，让用户重新授权", async () => {
+  const { provider: auth } = provider();
+  auth.saveTokens(tokens);
+  await auth.withAuthContext(async () => {
+    auth.tokens();
+    const response = await auth.refresh(
+      new URLSearchParams({ grant_type: "refresh_token", refresh_token: "rt" }),
+      async () => new Response(JSON.stringify({ error: "invalid_grant" }), { status: 400 }),
+    );
+    assert.equal(response.status, 400);
+    auth.invalidateCredentials("tokens");
+  });
+  assert.equal(auth.tokens(), undefined);
+});
+
 test("回调端口变了之后，旧的注册信息要作废重来", () => {
   // 回调监听器按 7842、7843… 依次找空位，所以上一次授权可能注册在别的端口上。
   // 拿着那份旧注册再去发起授权，服务器只会回「redirect_uri 与注册时不一致」，
