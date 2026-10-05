@@ -221,7 +221,7 @@ export class McpConnection {
     this.options.diagnostic?.(level, event, { server: this.name, ...data });
   }
 
-  private diagnosticFetch(serverUrl: string): FetchLike {
+  private diagnosticFetch(serverUrl: string, oauth?: McpOAuthProvider): FetchLike {
     return async (input, init) => {
       const url = input instanceof URL ? input : new URL(input);
       const grantType = requestGrantType(init);
@@ -232,7 +232,12 @@ export class McpConnection {
           : url.toString() === serverUrl
             ? "mcp"
             : "oauth-discovery";
-      const response = await fetch(input, init);
+      const refreshBody = init?.body instanceof URLSearchParams
+        ? init.body
+        : typeof init?.body === "string" ? new URLSearchParams(init.body) : undefined;
+      const response = requestKind === "token-refresh" && oauth && refreshBody
+        ? await oauth.refresh(refreshBody, () => fetch(input, init))
+        : await fetch(input, init);
       const shouldInspect = requestKind === "token-refresh"
         || requestKind === "token-exchange"
         || !response.ok;
@@ -288,7 +293,7 @@ export class McpConnection {
     return new StreamableHTTPClientTransport(new URL(launch.url), {
       authProvider: this.oauth,
       requestInit: { headers: launch.headers },
-      fetch: this.diagnosticFetch(launch.url),
+      fetch: this.diagnosticFetch(launch.url, this.oauth),
     });
   }
 
@@ -318,13 +323,14 @@ export class McpConnection {
       );
       const transport = this.buildTransport();
       await this.withTimeout(
-        client.connect(transport),
+        this.oauth ? this.oauth.withAuthContext(() => client.connect(transport)) : client.connect(transport),
         `连接 ${this.name} 超时（${Math.round(this.timeoutMs / 1000)} 秒）。`,
       );
       this.client = client;
       this.transport = transport;
       this.watchForClose(client);
-      await this.discover(client);
+      if (this.oauth) await this.oauth.withAuthContext(() => this.discover(client));
+      else await this.discover(client);
       this.state = "connected";
       return this.state;
     } catch (error) {
@@ -455,12 +461,16 @@ export class McpConnection {
   async finishAuth(code: string): Promise<McpConnectionStatus> {
     const transport = this.transport;
     if (transport instanceof StreamableHTTPClientTransport) {
-      await transport.finishAuth(code);
+      if (this.oauth) await this.oauth.withAuthContext(() => transport.finishAuth(code));
+      else await transport.finishAuth(code);
     } else {
       // The failed attempt tore its transport down, so build a fresh one purely
       // to carry the code exchange; the reconnect below is what actually runs.
       const rebuilt = this.buildTransport();
-      if (rebuilt instanceof StreamableHTTPClientTransport) await rebuilt.finishAuth(code);
+      if (rebuilt instanceof StreamableHTTPClientTransport) {
+        if (this.oauth) await this.oauth.withAuthContext(() => rebuilt.finishAuth(code));
+        else await rebuilt.finishAuth(code);
+      }
       await rebuilt.close().catch(() => undefined);
     }
     this.state = "not connected";
@@ -520,11 +530,12 @@ export class McpConnection {
     }
     const client = this.client;
     if (!client) throw new Error(`MCP Server「${this.name}」还没有连接。`);
-    return client.callTool(
+    const call = () => client.callTool(
       { name, arguments: args },
       undefined,
       { timeout: this.options.definition.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS, signal },
     );
+    return this.oauth ? this.oauth.withAuthContext(call) : call();
   }
 
   private async dispose(): Promise<void> {

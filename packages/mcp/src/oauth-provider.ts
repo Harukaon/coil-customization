@@ -14,6 +14,7 @@
  * server's address rather than by this object is what keeps that true across
  * restarts.
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
 import type {
@@ -47,6 +48,28 @@ export interface McpOAuthOptions {
 
 const DEFAULT_CLIENT_NAME = "CoilCoil";
 const DEFAULT_CLIENT_URI = "https://github.com/Harukaon/CoilCoil";
+
+interface RefreshContext {
+  /** The token this SDK auth attempt read, not whatever is currently on disk. */
+  attemptedRefreshToken?: string;
+}
+
+interface RefreshRequest {
+  token: string;
+  response: Promise<Response>;
+}
+
+// A connection can be replaced while another request is still completing. All
+// providers backed by the same store must join the same refresh for this URL.
+const refreshContexts = new AsyncLocalStorage<RefreshContext>();
+const refreshRequests = new WeakMap<McpCredentialStore, Map<string, RefreshRequest>>();
+
+function cachedTokenResponse(tokens: OAuthTokens): Response {
+  return new Response(JSON.stringify(tokens), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
 
 export class McpOAuthProvider implements OAuthClientProvider {
   private readonly key: string;
@@ -115,7 +138,62 @@ export class McpOAuthProvider implements OAuthClientProvider {
   }
 
   tokens(): OAuthTokens | undefined {
-    return this.options.store.get(this.key)?.tokens as OAuthTokens | undefined;
+    const tokens = this.options.store.get(this.key)?.tokens as OAuthTokens | undefined;
+    const context = refreshContexts.getStore();
+    if (context && tokens?.refresh_token) context.attemptedRefreshToken = tokens.refresh_token;
+    return tokens;
+  }
+
+  /** Keep the SDK's token read and its eventual save/invalidation in one request context. */
+  withAuthContext<T>(work: () => Promise<T>): Promise<T> {
+    return refreshContexts.run({}, work);
+  }
+
+  /**
+   * A rotating refresh token may only be presented to the server once. The SDK
+   * invokes auth() independently for each 401, so its transport has no lock.
+   * Keep the successful response until the stored token changes: a second SDK
+   * attempt can reach this hook after the HTTP response but before saveTokens.
+   */
+  async refresh(body: URLSearchParams, fetchRefresh: () => Promise<Response>): Promise<Response> {
+    const attempted = body.get("refresh_token");
+    if (!attempted) return fetchRefresh();
+    const current = this.options.store.get(this.key)?.tokens as OAuthTokens | undefined;
+    if (current?.refresh_token && current.refresh_token !== attempted && current.access_token) {
+      this.options.diagnostic?.("info", "oauth_refresh_reused");
+      return cachedTokenResponse(current);
+    }
+
+    let requests = refreshRequests.get(this.options.store);
+    if (!requests) {
+      requests = new Map();
+      refreshRequests.set(this.options.store, requests);
+    }
+    let request = requests.get(this.key);
+    if (!request || request.token !== attempted) {
+      const response = fetchRefresh().then((received) => {
+        // Another provider (or process) may have rotated the file while this
+        // particular HTTP request was in flight. Its invalid_grant is stale.
+        if (!received.ok) {
+          const latest = this.options.store.get(this.key)?.tokens as OAuthTokens | undefined;
+          if (latest?.refresh_token && latest.refresh_token !== attempted && latest.access_token) {
+            return cachedTokenResponse(latest);
+          }
+        }
+        return received;
+      });
+      request = { token: attempted, response };
+      requests.set(this.key, request);
+      const created = request;
+      void response.then((received) => {
+        if (!received.ok && requests.get(this.key) === created) requests.delete(this.key);
+      }, () => {
+        if (requests.get(this.key) === created) requests.delete(this.key);
+      });
+    } else {
+      this.options.diagnostic?.("info", "oauth_refresh_reused");
+    }
+    return (await request.response).clone();
   }
 
   private tokenSummary(tokens: OAuthTokens): Record<string, unknown> {
@@ -137,12 +215,22 @@ export class McpOAuthProvider implements OAuthClientProvider {
    * accepted against a flow that has already finished.
    */
   saveTokens(tokens: OAuthTokens): void {
+    const attempted = refreshContexts.getStore()?.attemptedRefreshToken;
+    const current = this.options.store.get(this.key)?.tokens as OAuthTokens | undefined;
+    if (attempted && current?.refresh_token !== attempted) {
+      this.options.diagnostic?.("info", "oauth_stale_token_result_ignored");
+      return;
+    }
     this.options.store.update(this.key, {
       url: this.options.serverUrl,
       tokens: tokens as unknown as Record<string, unknown>,
       codeVerifier: undefined,
       state: undefined,
     });
+    // Do not keep serving this response on a later expiry when the server
+    // reuses the same refresh token (or omitted a new one).
+    const request = refreshRequests.get(this.options.store)?.get(this.key);
+    if (request?.token === attempted) refreshRequests.get(this.options.store)?.delete(this.key);
     this.options.diagnostic?.("info", "oauth_tokens_saved", this.tokenSummary(tokens));
   }
 
@@ -179,6 +267,12 @@ export class McpOAuthProvider implements OAuthClientProvider {
    * leaving a registration the user believes they discarded.
    */
   invalidateCredentials(scope: "all" | "client" | "tokens" | "verifier" | "discovery"): void {
+    const attempted = refreshContexts.getStore()?.attemptedRefreshToken;
+    const current = this.options.store.get(this.key)?.tokens as OAuthTokens | undefined;
+    if ((scope === "tokens" || scope === "all") && attempted && current?.refresh_token !== attempted) {
+      this.options.diagnostic?.("info", "oauth_stale_invalidation_ignored", { scope });
+      return;
+    }
     this.options.diagnostic?.("warn", "oauth_credentials_invalidated", { scope });
     if (scope === "all") {
       this.options.store.clear(this.key);
